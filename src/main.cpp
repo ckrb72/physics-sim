@@ -146,20 +146,19 @@ void dydt(double t, RigidBody& rb)
     std::cout << "Omega: " << std::endl;
     print_vec3((const glm::vec3&)rb.omega);
 
-    // Right now the torque, velocity, etc are placed into rb itself but really should put these in their own struct because they are per frame
     compute_force_and_torque(t, rb);
 
-    // Compute qdot Instantaneous rate of change of orientation encoded in quaternion)
-    glm::quat omega_q = glm::angleAxis(0.0f, rb.omega);
+    // Compute qdot (Instantaneous rate of change of orientation encoded in quaternion)
+    glm::quat omega_q = glm::quat(0.0f, rb.omega);
 
     std::cout << "Omega Quat: " << std::endl;
     print_quat(omega_q);
 
     std::cout << "Q: " << std::endl;
     print_quat(rb.q);
+
     rb.qdot = (omega_q * rb.q);
     rb.qdot *= 0.5;
-
     rb.qdot = glm::normalize(rb.qdot);
 
     std::cout << "Qdot: " << std::endl;
@@ -167,10 +166,13 @@ void dydt(double t, RigidBody& rb)
  
 }
 
-void ode(RigidBody& rb, double start, double end)
+void ode(RigidBody& rb, double delta)
 {
     // Compute derivatives
-    dydt(end, rb);
+    dydt(delta, rb);
+
+    // FIXME: These might need to happen before we compute the velocities for the frame
+    // Take care of forces and torque (essentially handles acceleration)
 
     // Add force to linear momentum
     rb.P += rb.force;
@@ -178,11 +180,11 @@ void ode(RigidBody& rb, double start, double end)
     // Add torque to angular momentum
     rb.L += rb.torque;
 
-    // Compute new location and orientation
-
+    // Compute new position and orientation
     rb.x += rb.v;
-    rb.q = rb.qdot * rb.q;
 
+    // FIXME: This might be wrong
+    rb.q = glm::normalize(rb.qdot + (0.5f * rb.q));
 }
 
 int main()
@@ -306,7 +308,7 @@ int main()
 
     glm::mat4 perspective = glm::perspective(glm::radians(90.0f), (float)WIN_WIDTH / (float)WIN_HEIGHT, 0.1f, 10.0f);
 
-    glm::mat4 view = glm::lookAt(glm::vec3(0.0f, 0.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0));
+    glm::mat4 view = glm::lookAt(glm::vec3(0.0f, 0.0f, 5.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0));
     
     glm::mat4 model = glm::rotate(glm::mat4(1.0f), glm::radians(45.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 
@@ -318,7 +320,7 @@ int main()
  
     std::cout << "Starting simulation" << std::endl;
 
-    double mass = 1.0;
+    double mass = 2.0;
     glm::vec3 dimensions = {1.0, 1.0, 1.0};
 
     const glm::mat3 Ibody = 
@@ -335,8 +337,8 @@ int main()
         .IbodyInv = glm::inverse(Ibody),
         .x = glm::vec3(0.0, 0.0, 0.0),    // Position = origin
         .q = glm::angleAxis(glm::radians(0.0f), glm::vec3(1.0, 0.0, 0.0)), // Orientation = 0 degree around x axis
-        .P = glm::vec3(1.0,0.0, 0.0),   // Linear momentum
-        .L = glm::vec3(0.0, 0.0, 0.0)   // No angular momentum
+        .P = glm::vec3(0.0, 0.0, 0.0),   // Linear momentum
+        .L = glm::vec3(1.0, 0.0, 0.0)   // No angular momentum
     };
     
     glEnable(GL_DEPTH_TEST);
@@ -352,12 +354,13 @@ int main()
         previous_time = current_time;
 
         elapsed_time += delta;
-        if (elapsed_time > 0.5)
+        if (elapsed_time > 1.0)
         {
             // Run simulation
             std::cout << "Running simulation step" << std::endl;
 
-            ode(rb, current_time, current_time + delta);
+            // Marches the simulation forward by elapsed_time
+            ode(rb, elapsed_time);
 
             print_rigid_body(rb);
 
@@ -365,14 +368,10 @@ int main()
             glm::mat4 model = glm::toMat4(rb.q);
             model = glm::translate(model, rb.x);
 
-
-            glUniformMatrix4fv(glGetUniformLocation(program, "model"), 1, GL_FALSE, glm::value_ptr(model));
-
-            // The time variables are almost certainly wrong but for now this is fine
-            //ode(rb, current_time, current_time + delta);
-
             // Display objects
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+            glUniformMatrix4fv(glGetUniformLocation(program, "model"), 1, GL_FALSE, glm::value_ptr(model));
 
             glUseProgram(program);
             glBindVertexArray(vao);

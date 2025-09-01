@@ -7,5 +7,6 @@ out vec4 final_color;
 
 void main()
 {
+    //vec3 norm = (f_norm + 1.0) / 2.0;
     final_color = vec4(f_norm, 1.0);
 }
