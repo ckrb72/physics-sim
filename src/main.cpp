@@ -29,6 +29,60 @@ struct RigidBody
     glm::vec3 torque;
 };
 
+void print_mat3(const glm::mat3& m)
+{
+    for (int r = 0; r < 3; r++)
+    {
+        std::cout << "| ";
+        for (int c = 0; c < 3; c++)
+        {
+            std::cout << m[r][c] << " ";
+        }
+        std::cout << "|" << std::endl;
+    }
+}
+
+void print_vec3(const glm::vec3& v)
+{
+    std::cout << "[ " << v.x << " " << v.y << " " << v.z << " ]" << std::endl;
+}
+
+void print_quat(const glm::quat& q)
+{
+    double theta = acos(q.w) * 2.0;
+    double s = sin(theta / 2.0);
+    std::cout << "Theta: " << theta * 180.0 / 3.1415 << " [ " << q.x / s << " " << q.y / s << " " << q.z / s << " ]" << std::endl;
+    std::cout << "| " << q.w << " " << q.x << " " << q.y << " " << q.z << " |" << std::endl;
+}
+
+void print_rigid_body(const RigidBody& rb)
+{
+    std::cout << std::endl;
+    std::cout << "Mass: " << rb.mass << std::endl;
+    std::cout << "Ibody: " << std::endl;
+    print_mat3(rb.Ibody);
+
+    std::cout << "Pos: " << std::endl;
+    print_vec3(rb.x);
+
+    std::cout << "Orientation: " << std::endl;
+    print_quat(rb.q);
+
+    std::cout << "Linear Momentum: " << std::endl;
+    print_vec3(rb.P);
+
+    std::cout << "Angular Momentum: " << std::endl;
+    print_vec3(rb.L);
+
+    std::cout << "Linear Velocity: " << std::endl;
+    print_vec3(rb.v);
+
+    std::cout << "Angular Velocity: " << std::endl;
+    print_vec3(rb.omega);
+
+    std::cout << std::endl;
+}
+
 
 bool load_shader(const std::string& vertex_path, const std::string& fragment_path, unsigned int* program_ptr);
 
@@ -44,7 +98,7 @@ const int WIN_HEIGHT = 1080;
 void compute_force_and_torque(double t, RigidBody& rb)
 {
     // Just set rb to a constant force right now
-    rb.force = glm::vec3(0.0, -9.8, 0.0);
+    rb.force = glm::vec3(0.0, 0.0, 0.0);
     rb.torque = glm::vec3(0.0);
 }
 
@@ -75,25 +129,60 @@ void dydt(double t, RigidBody& rb)
     rb.v[1] = rb.P[1] / rb.mass;
     rb.v[2] = rb.P[2] / rb.mass;
     
-    rb.R = glm::toMat3(glm::normalize(rb.q));
+    rb.q = glm::normalize(rb.q);
+    rb.R = glm::toMat3(rb.q);
 
+    std::cout << "R: " << std::endl;
+    print_mat3((const glm::mat3&)rb.R);
+    
     // Compute inverse Inertia tensor
     rb.Iinv = rb.R * rb.IbodyInv * glm::transpose(rb.R);
+    std::cout << "Iinv: " << std::endl;
+    print_mat3((const glm::mat3&)rb.Iinv);
 
     // Compute angular velocity
     rb.omega = rb.Iinv * rb.L;
+
+    std::cout << "Omega: " << std::endl;
+    print_vec3((const glm::vec3&)rb.omega);
 
     // Right now the torque, velocity, etc are placed into rb itself but really should put these in their own struct because they are per frame
     compute_force_and_torque(t, rb);
 
     // Compute qdot Instantaneous rate of change of orientation encoded in quaternion)
-    rb.qdot = (glm::quat((double)0.0, rb.omega) * rb.q);
+    glm::quat omega_q = glm::angleAxis(0.0f, rb.omega);
+
+    std::cout << "Omega Quat: " << std::endl;
+    print_quat(omega_q);
+
+    std::cout << "Q: " << std::endl;
+    print_quat(rb.q);
+    rb.qdot = (omega_q * rb.q);
     rb.qdot *= 0.5;
+
+    rb.qdot = glm::normalize(rb.qdot);
+
+    std::cout << "Qdot: " << std::endl;
+    print_quat(rb.qdot);
+ 
 }
 
 void ode(RigidBody& rb, double start, double end)
 {
+    // Compute derivatives
     dydt(end, rb);
+
+    // Add force to linear momentum
+    rb.P += rb.force;
+
+    // Add torque to angular momentum
+    rb.L += rb.torque;
+
+    // Compute new location and orientation
+
+    rb.x += rb.v;
+    rb.q = rb.qdot * rb.q;
+
 }
 
 int main()
@@ -229,21 +318,25 @@ int main()
  
     std::cout << "Starting simulation" << std::endl;
 
-    double mass = 10.0;
+    double mass = 1.0;
     glm::vec3 dimensions = {1.0, 1.0, 1.0};
+
+    const glm::mat3 Ibody = 
+    {
+        {mass / 12.0 * ( (dimensions[1] * dimensions[1]) + (dimensions[2] * dimensions[2]) ), 0.0, 0.0},
+        {0.0, mass / 12.0 * ( (dimensions[0] * dimensions[0]) + (dimensions[2] * dimensions[2]) ), 0.0},
+        {0.0, 0.0, mass / 12.0 * ( (dimensions[0] * dimensions[0]) + (dimensions[1] * dimensions[1]) )}
+    }; 
 
     RigidBody rb = 
     {
         .mass = mass,
-        .Ibody = {
-            {mass / 12.0 * ( (dimensions[1] * dimensions[1]) + (dimensions[2] * dimensions[2]) ), 0.0, 0.0},
-            {0.0, mass / 12.0 * ( (dimensions[0] * dimensions[0]) + (dimensions[2] * dimensions[2]) ), 0.0},
-            {0.0, 0.0, mass / 12.0 * ( (dimensions[0] * dimensions[0]) + (dimensions[1] * dimensions[1]) )}
-        },
-        .x = glm::vec3(0.0),    // Position = origin
-        .q = glm::quat(0.0, glm::vec3(1.0, 0.0, 0.0)), // Orientation = 0 degree around x axis
+        .Ibody = Ibody,
+        .IbodyInv = glm::inverse(Ibody),
+        .x = glm::vec3(0.0, 0.0, 0.0),    // Position = origin
+        .q = glm::angleAxis(glm::radians(0.0f), glm::vec3(1.0, 0.0, 0.0)), // Orientation = 0 degree around x axis
         .P = glm::vec3(1.0,0.0, 0.0),   // Linear momentum
-        .L = glm::vec3(0.0)             // No angular momentum
+        .L = glm::vec3(0.0, 0.0, 0.0)   // No angular momentum
     };
     
     glEnable(GL_DEPTH_TEST);
@@ -264,9 +357,15 @@ int main()
             // Run simulation
             std::cout << "Running simulation step" << std::endl;
 
+            ode(rb, current_time, current_time + delta);
 
-            angle += 10.0f;
-            glm::mat4 model = glm::rotate(glm::mat4(1.0f), glm::radians(angle), glm::vec3(1.0f, 0.0f, 0.0f));
+            print_rigid_body(rb);
+
+            // Rotate then translate
+            glm::mat4 model = glm::toMat4(rb.q);
+            model = glm::translate(model, rb.x);
+
+
             glUniformMatrix4fv(glGetUniformLocation(program, "model"), 1, GL_FALSE, glm::value_ptr(model));
 
             // The time variables are almost certainly wrong but for now this is fine
