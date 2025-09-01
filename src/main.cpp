@@ -3,6 +3,7 @@
 #include <GLFW/glfw3.h>
 #include <fstream>
 #include <string>
+#define GLM_ENABLE_EXPERIMENTAL
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -99,7 +100,7 @@ void compute_force_and_torque(double t, RigidBody& rb)
 {
     // Just set rb to a constant force right now
     rb.force = glm::vec3(0.0, 0.0, 0.0);
-    rb.torque = glm::vec3(0.0);
+    rb.torque = glm::vec3(0.0, 1.0, 0.0);
 }
 
 // TODO: Have dydt place the force and torque (and other per frame variables) into their own struct and return it (makes no sense to place it in RigidBody if it is per frame)
@@ -132,58 +133,65 @@ void dydt(double t, RigidBody& rb)
     rb.q = glm::normalize(rb.q);
     rb.R = glm::toMat3(rb.q);
 
-    std::cout << "R: " << std::endl;
-    print_mat3((const glm::mat3&)rb.R);
+    //std::cout << "R: " << std::endl;
+    //print_mat3((const glm::mat3&)rb.R);
     
     // Compute inverse Inertia tensor
     rb.Iinv = rb.R * rb.IbodyInv * glm::transpose(rb.R);
-    std::cout << "Iinv: " << std::endl;
-    print_mat3((const glm::mat3&)rb.Iinv);
+    //std::cout << "Iinv: " << std::endl;
+    //print_mat3((const glm::mat3&)rb.Iinv);
 
     // Compute angular velocity
     rb.omega = rb.Iinv * rb.L;
 
-    std::cout << "Omega: " << std::endl;
-    print_vec3((const glm::vec3&)rb.omega);
+    //std::cout << "Omega: " << std::endl;
+    //print_vec3((const glm::vec3&)rb.omega);
 
     compute_force_and_torque(t, rb);
 
     // Compute qdot (Instantaneous rate of change of orientation encoded in quaternion)
     glm::quat omega_q = glm::quat(0.0f, rb.omega);
 
-    std::cout << "Omega Quat: " << std::endl;
-    print_quat(omega_q);
+    //std::cout << "Omega Quat: " << std::endl;
+    //print_quat(omega_q);
 
-    std::cout << "Q: " << std::endl;
-    print_quat(rb.q);
+    //std::cout << "Q: " << std::endl;
+    //print_quat(rb.q);
 
     rb.qdot = (omega_q * rb.q);
     rb.qdot *= 0.5;
-    rb.qdot = glm::normalize(rb.qdot);
+    rb.qdot = rb.qdot;
 
-    std::cout << "Qdot: " << std::endl;
-    print_quat(rb.qdot);
+    //std::cout << "Qdot: " << std::endl;
+    //print_quat(rb.qdot);
  
 }
 
 void ode(RigidBody& rb, double delta)
 {
+    std::cout << "Delta: " << delta << std::endl;
     // Compute derivatives
     dydt(delta, rb);
 
     // FIXME: These might need to happen before we compute the velocities for the frame
     // Take care of forces and torque (essentially handles acceleration)
 
+    // Should place the deltas into the dydt function
+
     // Add force to linear momentum
+    rb.force *= delta;
     rb.P += rb.force;
 
     // Add torque to angular momentum
+    rb.torque *= delta;
     rb.L += rb.torque;
 
     // Compute new position and orientation
+    rb.v *= delta;
     rb.x += rb.v;
 
     // FIXME: This might be wrong
+    rb.qdot *= delta;
     rb.q = glm::normalize(rb.qdot + (0.5f * rb.q));
 }
 
@@ -338,7 +346,7 @@ int main()
         .x = glm::vec3(0.0, 0.0, 0.0),    // Position = origin
         .q = glm::angleAxis(glm::radians(0.0f), glm::vec3(1.0, 0.0, 0.0)), // Orientation = 0 degree around x axis
         .P = glm::vec3(0.0, 0.0, 0.0),   // Linear momentum
-        .L = glm::vec3(1.0, 0.0, 0.0)   // No angular momentum
+        .L = glm::vec3(0.0, 0.0, 0.0)   // No angular momentum
     };
     
     glEnable(GL_DEPTH_TEST);
@@ -354,7 +362,7 @@ int main()
         previous_time = current_time;
 
         elapsed_time += delta;
-        if (elapsed_time > 1.0)
+        if (elapsed_time > 0.01)
         {
             // Run simulation
             std::cout << "Running simulation step" << std::endl;
@@ -362,7 +370,7 @@ int main()
             // Marches the simulation forward by elapsed_time
             ode(rb, elapsed_time);
 
-            print_rigid_body(rb);
+            //print_rigid_body(rb);
 
             // Rotate then translate
             glm::mat4 model = glm::toMat4(rb.q);
