@@ -99,8 +99,8 @@ const int WIN_HEIGHT = 1080;
 void compute_force_and_torque(double t, RigidBody& rb)
 {
     // Just set rb to a constant force right now
-    rb.force = glm::vec3(0.0, 0.0, 0.0);
-    rb.torque = glm::vec3(0.0, 1.0, 0.0);
+    rb.force = glm::vec3(1.0, 0.0, 0.0);
+    rb.torque = glm::vec3(0.25, 0.5, 0.0);
 }
 
 // TODO: Have dydt place the force and torque (and other per frame variables) into their own struct and return it (makes no sense to place it in RigidBody if it is per frame)
@@ -328,7 +328,7 @@ int main()
  
     std::cout << "Starting simulation" << std::endl;
 
-    double mass = 2.0;
+    double mass = 10.0;
     glm::vec3 dimensions = {1.0, 1.0, 1.0};
 
     const glm::mat3 Ibody = 
@@ -373,8 +373,7 @@ int main()
             //print_rigid_body(rb);
 
             // Rotate then translate
-            glm::mat4 model = glm::toMat4(rb.q);
-            model = glm::translate(model, rb.x);
+            glm::mat4 model = glm::translate(glm::mat4(1.0), rb.x) * glm::toMat4(rb.q);
 
             // Display objects
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
