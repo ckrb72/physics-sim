@@ -99,7 +99,7 @@ const int WIN_HEIGHT = 1080;
 void compute_force_and_torque(double t, RigidBody& rb)
 {
     // Just set rb to a constant force right now
-    rb.force = glm::vec3(1.0, 0.0, 0.0);
+    rb.force = glm::vec3(0.0, 0.0, 0.0);
     rb.torque = glm::vec3(0.25, 0.5, 0.0);
 }
 
@@ -169,7 +169,6 @@ void dydt(double t, RigidBody& rb)
 
 void ode(RigidBody& rb, double delta)
 {
-    std::cout << "Delta: " << delta << std::endl;
     // Compute derivatives
     dydt(delta, rb);
 
@@ -353,6 +352,13 @@ int main()
     double previous_time = glfwGetTime();
     double elapsed_time = 0.0;
     float angle = 0.0f;
+
+    // Camera stuff
+    double previous_xpos, previous_ypos;
+    glfwGetCursorPos(window, &previous_xpos, &previous_ypos);
+    double theta, phi;
+    double radius = 5.0;
+
     while(!glfwWindowShouldClose(window))
     {
         glfwPollEvents();
@@ -360,25 +366,46 @@ int main()
         double current_time = glfwGetTime();
         double delta = current_time - previous_time;
         previous_time = current_time;
+        
 
         elapsed_time += delta;
         if (elapsed_time > 0.01)
         {
             // Run simulation
-            std::cout << "Running simulation step" << std::endl;
 
             // Marches the simulation forward by elapsed_time
             ode(rb, elapsed_time);
 
             //print_rigid_body(rb);
 
-            // Rotate then translate
+            // Rotate then translate the object
             glm::mat4 model = glm::translate(glm::mat4(1.0), rb.x) * glm::toMat4(rb.q);
+
+            double current_xpos, current_ypos;
+            glfwGetCursorPos(window, &current_xpos, &current_ypos);
+
+            double xdelta = current_xpos - previous_xpos;
+            double ydelta = current_ypos - previous_ypos;
+            previous_xpos = current_xpos;
+            previous_ypos = current_ypos;
+
+            theta += xdelta;
+            phi += ydelta;
+
+            if (phi >= 89.0) phi = 89.0;
+            if (phi <= -89.0) phi = -89.0;
+
+
+            double theta_radian = glm::radians(theta);
+            double phi_radian = glm::radians(phi);
+
+            glm::mat4 view = glm::lookAt(glm::vec3(radius * sin(-theta_radian) * cos(phi_radian), radius * sin(phi_radian), radius * cos(-theta_radian) * cos(phi_radian)), glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, 1.0, 0.0));
 
             // Display objects
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
             glUniformMatrix4fv(glGetUniformLocation(program, "model"), 1, GL_FALSE, glm::value_ptr(model));
+            glUniformMatrix4fv(glGetUniformLocation(program, "view"), 1, GL_FALSE, glm::value_ptr(view));
 
             glUseProgram(program);
             glBindVertexArray(vao);
