@@ -9,6 +9,11 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/quaternion.hpp>
 
+
+#include <imgui/imgui.h>
+#include <imgui/imgui_impl_glfw.h>
+#include <imgui/imgui_impl_opengl3.h>
+
 struct RigidBody
 {
     double mass;
@@ -99,8 +104,8 @@ const int WIN_HEIGHT = 1080;
 void compute_force_and_torque(double t, RigidBody& rb)
 {
     // Just set rb to a constant force right now
-    rb.force = glm::vec3(0.0, 0.0, 0.0);
-    rb.torque = glm::vec3(0.25, 0.5, 0.0);
+    rb.force = glm::vec3(5.0, 0.0, 0.0);
+    rb.torque = glm::vec3(0.0, 0.0, 0.0);
 }
 
 // TODO: Have dydt place the force and torque (and other per frame variables) into their own struct and return it (makes no sense to place it in RigidBody if it is per frame)
@@ -193,6 +198,8 @@ void ode(RigidBody& rb, double delta)
     rb.qdot *= delta;
     rb.q = glm::normalize(rb.qdot + (0.5f * rb.q));
 }
+
+void draw_ui(RigidBody& rb);
 
 int main()
 {
@@ -345,7 +352,7 @@ int main()
         .x = glm::vec3(0.0, 0.0, 0.0),    // Position = origin
         .q = glm::angleAxis(glm::radians(0.0f), glm::vec3(1.0, 0.0, 0.0)), // Orientation = 0 degree around x axis
         .P = glm::vec3(0.0, 0.0, 0.0),   // Linear momentum
-        .L = glm::vec3(0.0, 0.0, 0.0)   // No angular momentum
+        .L = glm::vec3(1.0, 1.0, 0.0)   // No angular momentum
     };
     
     glEnable(GL_DEPTH_TEST);
@@ -358,6 +365,15 @@ int main()
     glfwGetCursorPos(window, &previous_xpos, &previous_ypos);
     double theta, phi;
     double radius = 5.0;
+
+
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO();
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+
+    ImGui_ImplGlfw_InitForOpenGL(window, true);
+    ImGui_ImplOpenGL3_Init();
 
     while(!glfwWindowShouldClose(window))
     {
@@ -377,6 +393,9 @@ int main()
             ode(rb, elapsed_time);
 
             //print_rigid_body(rb);
+
+
+            draw_ui(rb);
 
             // Rotate then translate the object
             glm::mat4 model = glm::translate(glm::mat4(1.0), rb.x) * glm::toMat4(rb.q);
@@ -411,6 +430,9 @@ int main()
             glBindVertexArray(vao);
             glDrawElements(GL_TRIANGLES, sizeof(indices) / sizeof(unsigned int), GL_UNSIGNED_INT, nullptr);
 
+            ImGui::Render();
+            ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
             glfwSwapBuffers(window);
  
 
@@ -418,10 +440,53 @@ int main()
         }
     }
 
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
+    ImGui::DestroyContext();
     glfwDestroyWindow(window);
     glfwTerminate();
 
     return 0;
+}
+
+
+void draw_ui(RigidBody& rb)
+{
+    // Build UI
+    ImGui_ImplOpenGL3_NewFrame();
+    ImGui_ImplGlfw_NewFrame();
+    ImGui::NewFrame();
+
+    ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoCollapse;
+
+    //const ImGuiViewport* main_viewport = ImGui::GetMainViewport();
+    //ImGui::SetNextWindowPos(ImVec2(main_viewport->WorkPos.x + 100, main_viewport->WorkPos.y + 20), ImGuiCond_FirstUseEver);
+    //ImGui::SetNextWindowSize(ImVec2(550, 680), ImGuiCond_FirstUseEver);
+
+    if(!ImGui::Begin("Stats", nullptr, window_flags))
+    {
+        ImGui::End();
+        return;
+    }
+
+
+    ImGui::Text("Mass: %f", rb.mass);
+    ImGui::Spacing();
+    ImGui::Text("Position: %f %f %f", rb.x.x, rb.x.y, rb.x.z);
+    ImGui::Spacing();
+    ImGui::Text("Orientation (Quaternion): %f %f %f %f", rb.q.w, rb.q.x, rb.q.y, rb.q.z);
+    ImGui::Spacing();
+    ImGui::Text("Orientation (Axis Angle): TODO");
+    ImGui::Spacing();
+    ImGui::Text("P: %f %f %f |P|: %f", rb.P.x, rb.P.y, rb.P.z, glm::length(rb.P));
+    ImGui::Spacing();
+    ImGui::Text("L: %f %f %f |L|: %f", rb.L.x, rb.L.y, rb.L.z, glm::length(rb.L));
+    ImGui::Spacing();
+    ImGui::Text("V: %f %f %f |V|: %f", rb.v.x, rb.v.y, rb.v.z, glm::length(rb.v));
+    ImGui::Spacing();
+    ImGui::Text("Omega: %f %f %f |Omega|: %f", rb.omega.x, rb.omega.y, rb.omega.z, glm::length(rb.omega));
+
+    ImGui::End();
 }
 
 
