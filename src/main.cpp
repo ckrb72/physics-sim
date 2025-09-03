@@ -104,7 +104,7 @@ const int WIN_HEIGHT = 1080;
 void compute_force_and_torque(double t, RigidBody& rb)
 {
     // Just set rb to a constant force right now
-    rb.force = glm::vec3(5.0, 0.0, 0.0);
+    rb.force = glm::vec3(0.0, 0.0, 0.0);
     rb.torque = glm::vec3(0.0, 0.0, 0.0);
 }
 
@@ -352,7 +352,19 @@ int main()
         .x = glm::vec3(0.0, 0.0, 0.0),    // Position = origin
         .q = glm::angleAxis(glm::radians(0.0f), glm::vec3(1.0, 0.0, 0.0)), // Orientation = 0 degree around x axis
         .P = glm::vec3(0.0, 0.0, 0.0),   // Linear momentum
-        .L = glm::vec3(1.0, 1.0, 0.0)   // No angular momentum
+        .L = glm::vec3(1.0, 1.0, 0.0)   // Angular Momentum
+    };
+
+
+    RigidBody rb2 =
+    {
+        .mass = mass / 10.0,
+        .Ibody = Ibody,
+        .IbodyInv = glm::inverse(Ibody),
+        .x = glm::vec3(3.0, 0.0, 0.0),
+        .q = glm::angleAxis(glm::radians(0.0f), glm::vec3(0.0, 0.0, 1.0)),
+        .P = glm::vec3(0.0, 0.0, 0.0),
+        .L = glm::vec3(0.0, 0.0, 0.0)
     };
     
     glEnable(GL_DEPTH_TEST);
@@ -391,6 +403,7 @@ int main()
 
             // Marches the simulation forward by elapsed_time
             ode(rb, elapsed_time);
+            ode(rb2, elapsed_time);
 
             //print_rigid_body(rb);
 
@@ -407,10 +420,14 @@ int main()
             double ydelta = current_ypos - previous_ypos;
             previous_xpos = current_xpos;
             previous_ypos = current_ypos;
-
-            theta += xdelta;
-            phi += ydelta;
-
+            
+            if(glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
+            {
+                theta += xdelta;
+                phi += ydelta; 
+            }
+            
+            
             if (phi >= 89.0) phi = 89.0;
             if (phi <= -89.0) phi = -89.0;
 
@@ -430,6 +447,12 @@ int main()
             glBindVertexArray(vao);
             glDrawElements(GL_TRIANGLES, sizeof(indices) / sizeof(unsigned int), GL_UNSIGNED_INT, nullptr);
 
+
+            model = glm::translate(glm::mat4(1.0), rb2.x) * glm::toMat4(rb2.q);
+            glUniformMatrix4fv(glGetUniformLocation(program, "model"), 1, GL_FALSE, glm::value_ptr(model));
+
+            glDrawElements(GL_TRIANGLES, sizeof(indices) / sizeof(unsigned int), GL_UNSIGNED_INT, nullptr);
+            
             ImGui::Render();
             ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
@@ -440,6 +463,18 @@ int main()
         }
     }
 
+
+    glDeleteBuffers(1, &vao);
+    glDeleteBuffers(1, &vbo);
+    glDeleteBuffers(1, &ebo);
+
+    glBindBuffer(0, GL_ARRAY_BUFFER);
+    glBindBuffer(0, GL_ELEMENT_ARRAY_BUFFER);
+    glBindVertexArray(0);
+
+    glUseProgram(0);
+    glDeleteProgram(program);
+    
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
