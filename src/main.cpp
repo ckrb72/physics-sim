@@ -35,6 +35,9 @@ struct RigidBody
     glm::vec3 torque;
 };
 
+const int MAX_AABB = 10;
+const int AABB_VERT_COUNT = 8;
+
 void print_mat3(const glm::mat3& m)
 {
     for (int r = 0; r < 3; r++)
@@ -363,7 +366,7 @@ int main()
         .IbodyInv = glm::inverse(Ibody),
         .x = glm::vec3(3.0, 0.0, 0.0),
         .q = glm::angleAxis(glm::radians(0.0f), glm::vec3(0.0, 0.0, 1.0)),
-        .P = glm::vec3(0.0, 0.0, 0.0),
+        .P = glm::vec3(-0.5, 0.0, 0.0),
         .L = glm::vec3(0.0, 0.0, 0.0)
     };
     
@@ -386,6 +389,72 @@ int main()
 
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init();
+
+
+    unsigned int aabb_vao, aabb_vbo, aabb_ebo;
+    glGenVertexArrays(1, &aabb_vao);
+    glGenBuffers(1, &aabb_vbo);
+    glGenBuffers(1, &aabb_ebo);
+
+    float test_aabb[] =  
+    {
+        -0.5, -0.5, 0.5,
+        0.5, -0.5, 0.5,
+        0.5, 0.5, 0.5,
+        -0.5, 0.5, 0.5,
+
+        0.5, -0.5, -0.5,
+        -0.5, -0.5, -0.5,
+        -0.5, 0.5, -0.5,
+        0.5, 0.5, -0.5
+    };
+
+
+    glBindVertexArray(aabb_vao);
+    glBindBuffer(GL_ARRAY_BUFFER, aabb_vbo);
+    glBufferData(GL_ARRAY_BUFFER, MAX_AABB * AABB_VERT_COUNT * 3 * sizeof(float), nullptr, GL_DYNAMIC_DRAW);
+
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, aabb_ebo);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, MAX_AABB * 24 * sizeof(unsigned int), nullptr, GL_DYNAMIC_DRAW);
+
+
+    unsigned int aabb_indices[] =
+    {
+        0, 1,
+        1, 2,
+        2, 3,
+        3, 0,
+        4, 5,
+        5, 6,
+        6, 7,
+        7, 4,
+        1, 4,
+        2, 7,
+        0, 5,
+        3, 6,
+    };
+
+
+    // Offset computation:
+    // vbo: count * AABB_VERT_COUNT * AABB_VERT_SIZE
+    // ebo: count * AABB_INDX_COUNT * sizeof(unsigned int)
+
+    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(test_aabb), test_aabb);
+    glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, sizeof(aabb_indices), aabb_indices);
+
+    glBindVertexArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+    unsigned int aabb_program;
+    if (!load_shader("../shader/aabb.vert", "../shader/aabb.frag", &aabb_program))
+    {
+        std::cerr << "Failed to load aabb shader" << std::endl;
+        exit(EXIT_FAILURE);
+    }
 
     while(!glfwWindowShouldClose(window))
     {
@@ -440,6 +509,8 @@ int main()
             // Display objects
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+            glUseProgram(program);
+
             glUniformMatrix4fv(glGetUniformLocation(program, "model"), 1, GL_FALSE, glm::value_ptr(model));
             glUniformMatrix4fv(glGetUniformLocation(program, "view"), 1, GL_FALSE, glm::value_ptr(view));
 
@@ -452,6 +523,16 @@ int main()
             glUniformMatrix4fv(glGetUniformLocation(program, "model"), 1, GL_FALSE, glm::value_ptr(model));
 
             glDrawElements(GL_TRIANGLES, sizeof(indices) / sizeof(unsigned int), GL_UNSIGNED_INT, nullptr);
+
+
+            glUseProgram(aabb_program);
+
+            glUniformMatrix4fv(glGetUniformLocation(aabb_program, "projection"), 1, GL_FALSE, glm::value_ptr(perspective));
+            glUniformMatrix4fv(glGetUniformLocation(aabb_program, "view"), 1, GL_FALSE, glm::value_ptr(view));
+
+            glBindVertexArray(aabb_vao);
+
+            glDrawElements(GL_LINES, 24, GL_UNSIGNED_INT, nullptr);
             
             ImGui::Render();
             ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
