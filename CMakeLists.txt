@@ -8,13 +8,14 @@ find_package(OpenGL REQUIRED)
 set(SOURCE_DIR "${CMAKE_SOURCE_DIR}/src")
 set(VENDOR_DIR "${CMAKE_SOURCE_DIR}/vendor")
 
-include_directories(physics-sim "${VENDOR_DIR}/glad/include" "${VENDOR_DIR}/glm")
+include_directories(physics-sim "${VENDOR_DIR}/glad/include" "${VENDOR_DIR}/glm" "${VENDOR_DIR}/imgui")
 
 file(GLOB_RECURSE SRC_CXX_FILES "${SOURCE_DIR}/*.cpp")
 file(GLOB_RECURSE SRC_C_FILES "${SOURCE_DIR}/*.c")
 
 add_subdirectory(vendor/glfw)
+add_subdirectory(vendor/imgui)
 
 
 add_executable(physics-sim ${SRC_CXX_FILES} ${SRC_C_FILES})
-target_link_libraries(physics-sim ${OPENGL_LIBRARIES} glfw)
+target_link_libraries(physics-sim ${OPENGL_LIBRARIES} glfw imgui)

@@ -9,6 +9,11 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/quaternion.hpp>
 
+
+#include <imgui/imgui.h>
+#include <imgui/imgui_impl_glfw.h>
+#include <imgui/imgui_impl_opengl3.h>
+
 struct RigidBody
 {
     double mass;
@@ -29,6 +34,9 @@ struct RigidBody
     glm::vec3 force;
     glm::vec3 torque;
 };
+
+const int MAX_AABB = 10;
+const int AABB_VERT_COUNT = 8;
 
 void print_mat3(const glm::mat3& m)
 {
@@ -100,7 +108,7 @@ void compute_force_and_torque(double t, RigidBody& rb)
 {
     // Just set rb to a constant force right now
     rb.force = glm::vec3(0.0, 0.0, 0.0);
-    rb.torque = glm::vec3(0.25, 0.5, 0.0);
+    rb.torque = glm::vec3(0.0, 0.0, 0.0);
 }
 
 // TODO: Have dydt place the force and torque (and other per frame variables) into their own struct and return it (makes no sense to place it in RigidBody if it is per frame)
@@ -193,6 +201,8 @@ void ode(RigidBody& rb, double delta)
     rb.qdot *= delta;
     rb.q = glm::normalize(rb.qdot + (0.5f * rb.q));
 }
+
+void draw_ui(RigidBody& rb);
 
 int main()
 {
@@ -345,7 +355,19 @@ int main()
         .x = glm::vec3(0.0, 0.0, 0.0),    // Position = origin
         .q = glm::angleAxis(glm::radians(0.0f), glm::vec3(1.0, 0.0, 0.0)), // Orientation = 0 degree around x axis
         .P = glm::vec3(0.0, 0.0, 0.0),   // Linear momentum
-        .L = glm::vec3(0.0, 0.0, 0.0)   // No angular momentum
+        .L = glm::vec3(1.0, 1.0, 0.0)   // Angular Momentum
+    };
+
+
+    RigidBody rb2 =
+    {
+        .mass = mass / 10.0,
+        .Ibody = Ibody,
+        .IbodyInv = glm::inverse(Ibody),
+        .x = glm::vec3(3.0, 0.0, 0.0),
+        .q = glm::angleAxis(glm::radians(0.0f), glm::vec3(0.0, 0.0, 1.0)),
+        .P = glm::vec3(-0.5, 0.0, 0.0),
+        .L = glm::vec3(0.0, 0.0, 0.0)
     };
     
     glEnable(GL_DEPTH_TEST);
@@ -358,6 +380,81 @@ int main()
     glfwGetCursorPos(window, &previous_xpos, &previous_ypos);
     double theta, phi;
     double radius = 5.0;
+
+
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO();
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+
+    ImGui_ImplGlfw_InitForOpenGL(window, true);
+    ImGui_ImplOpenGL3_Init();
+
+
+    unsigned int aabb_vao, aabb_vbo, aabb_ebo;
+    glGenVertexArrays(1, &aabb_vao);
+    glGenBuffers(1, &aabb_vbo);
+    glGenBuffers(1, &aabb_ebo);
+
+    float test_aabb[] =  
+    {
+        -0.5, -0.5, 0.5,
+        0.5, -0.5, 0.5,
+        0.5, 0.5, 0.5,
+        -0.5, 0.5, 0.5,
+
+        0.5, -0.5, -0.5,
+        -0.5, -0.5, -0.5,
+        -0.5, 0.5, -0.5,
+        0.5, 0.5, -0.5
+    };
+
+
+    glBindVertexArray(aabb_vao);
+    glBindBuffer(GL_ARRAY_BUFFER, aabb_vbo);
+    glBufferData(GL_ARRAY_BUFFER, MAX_AABB * AABB_VERT_COUNT * 3 * sizeof(float), nullptr, GL_DYNAMIC_DRAW);
+
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, aabb_ebo);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, MAX_AABB * 24 * sizeof(unsigned int), nullptr, GL_DYNAMIC_DRAW);
+
+
+    unsigned int aabb_indices[] =
+    {
+        0, 1,
+        1, 2,
+        2, 3,
+        3, 0,
+        4, 5,
+        5, 6,
+        6, 7,
+        7, 4,
+        1, 4,
+        2, 7,
+        0, 5,
+        3, 6,
+    };
+
+
+    // Offset computation:
+    // vbo: count * AABB_VERT_COUNT * AABB_VERT_SIZE
+    // ebo: count * AABB_INDX_COUNT * sizeof(unsigned int)
+
+    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(test_aabb), test_aabb);
+    glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, sizeof(aabb_indices), aabb_indices);
+
+    glBindVertexArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+    unsigned int aabb_program;
+    if (!load_shader("../shader/aabb.vert", "../shader/aabb.frag", &aabb_program))
+    {
+        std::cerr << "Failed to load aabb shader" << std::endl;
+        exit(EXIT_FAILURE);
+    }
 
     while(!glfwWindowShouldClose(window))
     {
@@ -375,8 +472,12 @@ int main()
 
             // Marches the simulation forward by elapsed_time
             ode(rb, elapsed_time);
+            ode(rb2, elapsed_time);
 
             //print_rigid_body(rb);
+
+
+            draw_ui(rb);
 
             // Rotate then translate the object
             glm::mat4 model = glm::translate(glm::mat4(1.0), rb.x) * glm::toMat4(rb.q);
@@ -388,10 +489,14 @@ int main()
             double ydelta = current_ypos - previous_ypos;
             previous_xpos = current_xpos;
             previous_ypos = current_ypos;
-
-            theta += xdelta;
-            phi += ydelta;
-
+            
+            if(glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
+            {
+                theta += xdelta;
+                phi += ydelta; 
+            }
+            
+            
             if (phi >= 89.0) phi = 89.0;
             if (phi <= -89.0) phi = -89.0;
 
@@ -404,12 +509,33 @@ int main()
             // Display objects
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+            glUseProgram(program);
+
             glUniformMatrix4fv(glGetUniformLocation(program, "model"), 1, GL_FALSE, glm::value_ptr(model));
             glUniformMatrix4fv(glGetUniformLocation(program, "view"), 1, GL_FALSE, glm::value_ptr(view));
 
             glUseProgram(program);
             glBindVertexArray(vao);
             glDrawElements(GL_TRIANGLES, sizeof(indices) / sizeof(unsigned int), GL_UNSIGNED_INT, nullptr);
+
+
+            model = glm::translate(glm::mat4(1.0), rb2.x) * glm::toMat4(rb2.q);
+            glUniformMatrix4fv(glGetUniformLocation(program, "model"), 1, GL_FALSE, glm::value_ptr(model));
+
+            glDrawElements(GL_TRIANGLES, sizeof(indices) / sizeof(unsigned int), GL_UNSIGNED_INT, nullptr);
+
+
+            glUseProgram(aabb_program);
+
+            glUniformMatrix4fv(glGetUniformLocation(aabb_program, "projection"), 1, GL_FALSE, glm::value_ptr(perspective));
+            glUniformMatrix4fv(glGetUniformLocation(aabb_program, "view"), 1, GL_FALSE, glm::value_ptr(view));
+
+            glBindVertexArray(aabb_vao);
+
+            glDrawElements(GL_LINES, 24, GL_UNSIGNED_INT, nullptr);
+            
+            ImGui::Render();
+            ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
             glfwSwapBuffers(window);
  
@@ -418,10 +544,65 @@ int main()
         }
     }
 
+
+    glDeleteBuffers(1, &vao);
+    glDeleteBuffers(1, &vbo);
+    glDeleteBuffers(1, &ebo);
+
+    glBindBuffer(0, GL_ARRAY_BUFFER);
+    glBindBuffer(0, GL_ELEMENT_ARRAY_BUFFER);
+    glBindVertexArray(0);
+
+    glUseProgram(0);
+    glDeleteProgram(program);
+    
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
+    ImGui::DestroyContext();
     glfwDestroyWindow(window);
     glfwTerminate();
 
     return 0;
+}
+
+
+void draw_ui(RigidBody& rb)
+{
+    // Build UI
+    ImGui_ImplOpenGL3_NewFrame();
+    ImGui_ImplGlfw_NewFrame();
+    ImGui::NewFrame();
+
+    ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoCollapse;
+
+    //const ImGuiViewport* main_viewport = ImGui::GetMainViewport();
+    //ImGui::SetNextWindowPos(ImVec2(main_viewport->WorkPos.x + 100, main_viewport->WorkPos.y + 20), ImGuiCond_FirstUseEver);
+    //ImGui::SetNextWindowSize(ImVec2(550, 680), ImGuiCond_FirstUseEver);
+
+    if(!ImGui::Begin("Stats", nullptr, window_flags))
+    {
+        ImGui::End();
+        return;
+    }
+
+
+    ImGui::Text("Mass: %f", rb.mass);
+    ImGui::Spacing();
+    ImGui::Text("Position: %f %f %f", rb.x.x, rb.x.y, rb.x.z);
+    ImGui::Spacing();
+    ImGui::Text("Orientation (Quaternion): %f %f %f %f", rb.q.w, rb.q.x, rb.q.y, rb.q.z);
+    ImGui::Spacing();
+    ImGui::Text("Orientation (Axis Angle): TODO");
+    ImGui::Spacing();
+    ImGui::Text("P: %f %f %f |P|: %f", rb.P.x, rb.P.y, rb.P.z, glm::length(rb.P));
+    ImGui::Spacing();
+    ImGui::Text("L: %f %f %f |L|: %f", rb.L.x, rb.L.y, rb.L.z, glm::length(rb.L));
+    ImGui::Spacing();
+    ImGui::Text("V: %f %f %f |V|: %f", rb.v.x, rb.v.y, rb.v.z, glm::length(rb.v));
+    ImGui::Spacing();
+    ImGui::Text("Omega: %f %f %f |Omega|: %f", rb.omega.x, rb.omega.y, rb.omega.z, glm::length(rb.omega));
+
+    ImGui::End();
 }
 
 
