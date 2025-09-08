@@ -3,6 +3,8 @@
 #include <GLFW/glfw3.h>
 #include <fstream>
 #include <string>
+#include <queue>
+
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -13,6 +15,17 @@
 #include <imgui/imgui.h>
 #include <imgui/imgui_impl_glfw.h>
 #include <imgui/imgui_impl_opengl3.h>
+
+/*
+
+    Questions:
+        I'm technically thinking of things in terms of impulse and impulsive torque rather than forces and torques. This makes it easier to work with momentum
+        since you just add impulse to momentum. The big implication of this is that my engine computes things based on time deltas rather than computing the force at an arbitrary given time.
+        Will this screw me over in the long run or is this okay?
+
+        How should I be architecting this? Should impulses be their own objects that you can assign to rigid bodies or should they be something else?
+
+*/
 
 struct RigidBody
 {
@@ -34,6 +47,21 @@ struct RigidBody
     glm::vec3 force;
     glm::vec3 torque;
 };
+
+struct Impulse
+{
+    uint32_t rb_id;     // Id of the rigid body
+    double time;
+    glm::vec3 pos;      // position in body space 
+    glm::vec3 force;    // force vector
+};
+
+// This is an example of an impulse queue for a specific rigid body.
+// When we add multiple bodies will want to have one of these for each body.
+// Might want to put these in a map so can easily add impulses to different bodies (std::map<uint32_t, std::queue<Impulse>>)
+// Then each frame every rigid body goes through its queue and dequeues the impulse, computes the force and torque then subtracts the delta time
+// from impulse.time. If there is still time remaining, place it back in the queue for next frame.
+std::queue<Impulse> impulses;
 
 const int MAX_AABB = 10;
 const int AABB_VERT_COUNT = 8;
@@ -103,12 +131,55 @@ void glfw_error_fun(int error, const char* err_desc)
 const int WIN_WIDTH = 1920;
 const int WIN_HEIGHT = 1080;
 
-// Computes Force and Torque at time t and places them in rb
+// Computes Force and Torque over time t and places them in rb
+// This actually technically calculates the impulse and impulsive torque OVER the time t,
+// not the force and torque AT time t.
 void compute_force_and_torque(double t, RigidBody& rb)
 {
-    // Just set rb to a constant force right now
-    rb.force = glm::vec3(0.0, 0.0, 0.0);
-    rb.torque = glm::vec3(0.0, 0.0, 0.0);
+    // Compute force and torque from impulses
+    glm::vec3 force = glm::vec3(0.0);
+    glm::vec3 torque = glm::vec3(0.0);
+
+
+    int impulse_count = impulses.size();
+
+    for (int i = 0; i < impulse_count; i++)
+    {
+        Impulse& impulse = impulses.front();
+        impulses.pop();
+
+        glm::vec3 j = impulse.force;
+        double time;
+
+        // Time is either the delta of the frame (t) or the time remaining on the impulse (impulse.time)
+        if (t <= impulse.time) time = t;
+        else time = impulse.time;
+
+        j *= time;
+
+        print_vec3(j);
+
+        force += j;
+        torque += glm::cross((impulse.pos - rb.x), j);
+
+        impulse.time -= time;
+
+        if (impulse.time > 0.0) impulses.push(impulse);
+    }
+
+
+    // Add constant forces
+    // Gravity
+    glm::vec3 gravity = glm::vec3(0.0, -9.8, 0.0);
+    gravity *= t;
+    force += gravity;
+    
+    // These are actually technically impulse and impulsive torque since we are multiplying by time
+    // But it doesn't really matter as long as we are consistent
+    rb.force = force;
+
+    rb.torque = torque;
+    rb.torque *= t;
 }
 
 // TODO: Have dydt place the force and torque (and other per frame variables) into their own struct and return it (makes no sense to place it in RigidBody if it is per frame)
@@ -137,68 +208,44 @@ void dydt(double t, RigidBody& rb)
     rb.v[0] = rb.P[0] / rb.mass;
     rb.v[1] = rb.P[1] / rb.mass;
     rb.v[2] = rb.P[2] / rb.mass;
+    rb.v *= t;      // Scale by time
     
     rb.q = glm::normalize(rb.q);
     rb.R = glm::toMat3(rb.q);
 
-    //std::cout << "R: " << std::endl;
-    //print_mat3((const glm::mat3&)rb.R);
-    
+   
     // Compute inverse Inertia tensor
     rb.Iinv = rb.R * rb.IbodyInv * glm::transpose(rb.R);
-    //std::cout << "Iinv: " << std::endl;
-    //print_mat3((const glm::mat3&)rb.Iinv);
 
     // Compute angular velocity
     rb.omega = rb.Iinv * rb.L;
-
-    //std::cout << "Omega: " << std::endl;
-    //print_vec3((const glm::vec3&)rb.omega);
 
     compute_force_and_torque(t, rb);
 
     // Compute qdot (Instantaneous rate of change of orientation encoded in quaternion)
     glm::quat omega_q = glm::quat(0.0f, rb.omega);
-
-    //std::cout << "Omega Quat: " << std::endl;
-    //print_quat(omega_q);
-
-    //std::cout << "Q: " << std::endl;
-    //print_quat(rb.q);
-
     rb.qdot = (omega_q * rb.q);
     rb.qdot *= 0.5;
-    rb.qdot = rb.qdot;
-
-    //std::cout << "Qdot: " << std::endl;
-    //print_quat(rb.qdot);
- 
+    rb.qdot *= t;
 }
 
+// TODO: add logic to handle the case that delta is too large (split the integration into multiple steps);
 void ode(RigidBody& rb, double delta)
 {
     // Compute derivatives
     dydt(delta, rb);
 
-    // FIXME: These might need to happen before we compute the velocities for the frame
-    // Take care of forces and torque (essentially handles acceleration)
-
-    // Should place the deltas into the dydt function
-
-    // Add force to linear momentum
-    rb.force *= delta;
+    // TOOD: Might want to rename these fields to impulse and impulsive torque since that makes more sense
+    // Add force (technically impulse) to linear momentum
     rb.P += rb.force;
 
-    // Add torque to angular momentum
-    rb.torque *= delta;
+    // Add torque (technically impulsive torque) to angular momentum
     rb.L += rb.torque;
 
     // Compute new position and orientation
-    rb.v *= delta;
     rb.x += rb.v;
 
     // FIXME: This might be wrong
-    rb.qdot *= delta;
     rb.q = glm::normalize(rb.qdot + (0.5f * rb.q));
 }
 
@@ -323,7 +370,7 @@ int main()
         exit(EXIT_FAILURE);
     }
 
-    glm::mat4 perspective = glm::perspective(glm::radians(90.0f), (float)WIN_WIDTH / (float)WIN_HEIGHT, 0.1f, 10.0f);
+    glm::mat4 perspective = glm::perspective(glm::radians(90.0f), (float)WIN_WIDTH / (float)WIN_HEIGHT, 0.1f, 50.0f);
 
     glm::mat4 view = glm::lookAt(glm::vec3(0.0f, 0.0f, 5.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0));
     
@@ -352,21 +399,29 @@ int main()
         .mass = mass,
         .Ibody = Ibody,
         .IbodyInv = glm::inverse(Ibody),
-        .x = glm::vec3(0.0, 0.0, 0.0),    // Position = origin
+        .x = glm::vec3(-5.0, 0.0, 0.0),    // Position = origin
         .q = glm::angleAxis(glm::radians(0.0f), glm::vec3(1.0, 0.0, 0.0)), // Orientation = 0 degree around x axis
         .P = glm::vec3(0.0, 0.0, 0.0),   // Linear momentum
-        .L = glm::vec3(1.0, 1.0, 0.0)   // Angular Momentum
+        .L = glm::vec3(0.0, 0.0, 0.0)   // Angular Momentum
     };
 
+    double mass2 = 1.0;
+
+    const glm::mat3 Ibody2 = 
+    {
+        {mass2 / 12.0 * ( (dimensions[1] * dimensions[1]) + (dimensions[2] * dimensions[2]) ), 0.0, 0.0},
+        {0.0, mass2 / 12.0 * ( (dimensions[0] * dimensions[0]) + (dimensions[2] * dimensions[2]) ), 0.0},
+        {0.0, 0.0, mass2 / 12.0 * ( (dimensions[0] * dimensions[0]) + (dimensions[1] * dimensions[1]) )} 
+    };
 
     RigidBody rb2 =
     {
-        .mass = mass / 10.0,
-        .Ibody = Ibody,
+        .mass = mass2,
+        .Ibody = Ibody2,
         .IbodyInv = glm::inverse(Ibody),
         .x = glm::vec3(3.0, 0.0, 0.0),
         .q = glm::angleAxis(glm::radians(0.0f), glm::vec3(0.0, 0.0, 1.0)),
-        .P = glm::vec3(-0.5, 0.0, 0.0),
+        .P = glm::vec3(0.0, 0.0, 0.0),
         .L = glm::vec3(0.0, 0.0, 0.0)
     };
     
@@ -449,12 +504,36 @@ int main()
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
+
+    unsigned int point_vao, point_vbo;
+    glGenVertexArrays(1, &point_vao);
+    glGenBuffers(1, &point_vbo);
+
+    float points[] =
+    {
+        -1.0, 1.0, 2.0
+    };
+
+    glBindVertexArray(point_vao);
+    glBindBuffer(GL_ARRAY_BUFFER, point_vbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(points), points, GL_DYNAMIC_DRAW);
+
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+
+    glBindVertexArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+
     unsigned int aabb_program;
     if (!load_shader("../shader/aabb.vert", "../shader/aabb.frag", &aabb_program))
     {
         std::cerr << "Failed to load aabb shader" << std::endl;
         exit(EXIT_FAILURE);
     }
+
+    glPointSize(10.0f);
+
+    impulses.push({0, 0.2, {0.0, 0.0, 0.0}, {100.0, 100.0, 100.0}});
 
     while(!glfwWindowShouldClose(window))
     {
@@ -472,7 +551,7 @@ int main()
 
             // Marches the simulation forward by elapsed_time
             ode(rb, elapsed_time);
-            ode(rb2, elapsed_time);
+            //ode(rb2, elapsed_time);
 
             //print_rigid_body(rb);
 
@@ -519,12 +598,14 @@ int main()
             glDrawElements(GL_TRIANGLES, sizeof(indices) / sizeof(unsigned int), GL_UNSIGNED_INT, nullptr);
 
 
+            /*
             model = glm::translate(glm::mat4(1.0), rb2.x) * glm::toMat4(rb2.q);
             glUniformMatrix4fv(glGetUniformLocation(program, "model"), 1, GL_FALSE, glm::value_ptr(model));
 
-            glDrawElements(GL_TRIANGLES, sizeof(indices) / sizeof(unsigned int), GL_UNSIGNED_INT, nullptr);
+            glDrawElements(GL_TRIANGLES, sizeof(indices) / sizeof(unsigned int), GL_UNSIGNED_INT, nullptr);*/
 
 
+            /*
             glUseProgram(aabb_program);
 
             glUniformMatrix4fv(glGetUniformLocation(aabb_program, "projection"), 1, GL_FALSE, glm::value_ptr(perspective));
@@ -533,6 +614,10 @@ int main()
             glBindVertexArray(aabb_vao);
 
             glDrawElements(GL_LINES, 24, GL_UNSIGNED_INT, nullptr);
+            
+            glBindVertexArray(point_vao);
+            glDrawArrays(GL_POINTS, 0, 1);
+            */ 
             
             ImGui::Render();
             ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
