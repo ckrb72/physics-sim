@@ -16,6 +16,9 @@
 #include <imgui/imgui_impl_glfw.h>
 #include <imgui/imgui_impl_opengl3.h>
 
+#include "render.h"
+#include "physics.h"
+
 /*
 
     Questions:
@@ -26,35 +29,6 @@
         How should I be architecting this? Should impulses be their own objects that you can assign to rigid bodies or should they be something else?
 
 */
-
-struct RigidBody
-{
-    double mass;
-    glm::mat3 Ibody;
-    glm::mat3 IbodyInv;
-
-    glm::vec3 x;    // pos
-    glm::quat q;    // orientation expressed as a quaternion
-    glm::vec3 P;    // linear momentum
-    glm::vec3 L;    // angular momentum
-
-    glm::mat3 Iinv; // Inverse inertia tensor
-    glm::vec3 v;    // velocity
-    glm::vec3 omega;// angular velocity
-    glm::mat3 R;    // Orientation derived from quaternion q
-    glm::quat qdot; // Change of orientation quaternion
-
-    glm::vec3 force;
-    glm::vec3 torque;
-};
-
-struct Impulse
-{
-    uint32_t rb_id;     // Id of the rigid body
-    double time;
-    glm::vec3 pos;      // position in body space 
-    glm::vec3 force;    // force vector
-};
 
 // This is an example of an impulse queue for a specific rigid body.
 // When we add multiple bodies will want to have one of these for each body.
@@ -170,7 +144,7 @@ void compute_force_and_torque(double t, RigidBody& rb)
 
     // Add constant forces
     // Gravity
-    glm::vec3 gravity = glm::vec3(0.0, -9.8, 0.0);
+    glm::vec3 gravity = glm::vec3(0.0, 0.0, 0.0);
     gravity *= t;
     force += gravity;
     
@@ -285,40 +259,40 @@ int main()
     unsigned int vao, vbo, ebo;
 
 
-    float vertices[] = 
+    std::vector<Vertex> vert_vec = 
     {
-        -0.5, -0.5, 0.5,    0.0, 0.0, 1.0,
-        0.5, -0.5, 0.5,     0.0, 0.0, 1.0,
-        0.5, 0.5, 0.5,      0.0, 0.0, 1.0,
-        -0.5, 0.5, 0.5,     0.0, 0.0, 1.0,
+        { {-0.5, -0.5, 0.5},  {0.0, 0.0, 1.0} },
+        { {0.5, -0.5, 0.5},   {0.0, 0.0, 1.0} },
+        { {0.5, 0.5, 0.5},    {0.0, 0.0, 1.0} },
+        { {-0.5, 0.5, 0.5},   {0.0, 0.0, 1.0} },
 
-        0.5, -0.5, -0.5,    0.0, 0.0, -1.0,
-        -0.5, -0.5, -0.5,   0.0, 0.0, -1.0,
-        -0.5, 0.5, -0.5,    0.0, 0.0, -1.0,
-        0.5, 0.5, -0.5,     0.0, 0.0, -1.0,
+        { {0.5, -0.5, -0.5},    {0.0, 0.0, -1.0} },
+        { {-0.5, -0.5, -0.5},   {0.0, 0.0, -1.0} },
+        { {-0.5, 0.5, -0.5},    {0.0, 0.0, -1.0} },
+        { {0.5, 0.5, -0.5},     {0.0, 0.0, -1.0} },
 
-        -0.5, -0.5, -0.5,   -1.0, 0.0, 0.0,
-        -0.5, -0.5, 0.5,    -1.0, 0.0, 0.0,
-        -0.5, 0.5, 0.5,     -1.0, 0.0, 0.0,
-        -0.5, 0.5, -0.5,    -1.0, 0.0, 0.0,
+        { {-0.5, -0.5, -0.5},   {-1.0, 0.0, 0.0} },
+        { {-0.5, -0.5, 0.5},   {-1.0, 0.0, 0.0} },
+        { {-0.5, 0.5, 0.5},   {-1.0, 0.0, 0.0} },
+        { {-0.5, 0.5, -0.5},   {-1.0, 0.0, 0.0} },
 
-        0.5, -0.5, 0.5,     1.0, 0.0, 0.0,
-        0.5, -0.5, -0.5,    1.0, 0.0, 0.0,
-        0.5, 0.5, -0.5,     1.0, 0.0, 0.0,
-        0.5, 0.5, 0.5,      1.0, 0.0, 0.0,
+        { {0.5, -0.5, 0.5},    {1.0, 0.0, 0.0} },
+        { {0.5, -0.5, -0.5},    {1.0, 0.0, 0.0} },
+        { {0.5, 0.5, -0.5},    {1.0, 0.0, 0.0} },
+        { {0.5, 0.5, 0.5},    {1.0, 0.0, 0.0} },
 
-        -0.5, 0.5, 0.5,     0.0, 1.0, 0.0,
-        0.5, 0.5, 0.5,      0.0, 1.0, 0.0,
-        0.5, 0.5, -0.5,     0.0, 1.0, 0.0,
-        -0.5, 0.5, -0.5,    0.0, 1.0, 0.0,
+        { {-0.5, 0.5, 0.5},    {0.0, 1.0, 0.0} },
+        { {0.5, 0.5, 0.5},    {0.0, 1.0, 0.0} },
+        { {0.5, 0.5, -0.5},    {0.0, 1.0, 0.0} },
+        { {-0.5, 0.5, -0.5},    {0.0, 1.0, 0.0} },
 
-        -0.5, -0.5, -0.5,   0.0, -1.0, 0.0,
-        0.5, -0.5, -0.5,    0.0, -1.0, 0.0,
-        0.5, -0.5, 0.5,     0.0, -1.0, 0.0,
-        -0.5, -0.5, 0.5,    0.0, -1.0, 0.0
+        { {-0.5, -0.5, -0.5},   {0.0, -1.0, 0.0} },
+        { {0.5, -0.5, -0.5},    {0.0, -1.0, 0.0} },
+        { {0.5, -0.5, 0.5},    {0.0, -1.0, 0.0} },
+        { {-0.5, -0.5, 0.5},    {0.0, -1.0, 0.} }
     };
 
-    unsigned int indices[] = 
+    std::vector<unsigned int> indx_vec = 
     {
         0, 1, 2,
         2, 3, 0,
@@ -339,27 +313,7 @@ int main()
         22, 23, 20
     };
 
-
-    glGenVertexArrays(1, &vao);
-    glGenBuffers(1, &ebo);
-    glGenBuffers(1, &vbo);
-
-    glBindVertexArray(vao);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
-
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
-    glEnableVertexAttribArray(1);
-
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
-
-    glBindVertexArray(0);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+    std::shared_ptr<Geometry> m = GeometryFactory::load(vert_vec, indx_vec);
 
     unsigned int program;
 
@@ -533,7 +487,7 @@ int main()
 
     glPointSize(10.0f);
 
-    impulses.push({0, 0.2, {0.0, 0.0, 0.0}, {100.0, 100.0, 100.0}});
+    //impulses.push({0, 0.2, {0.0, 0.0, 0.0}, {100.0, 100.0, 100.0}});
 
     while(!glfwWindowShouldClose(window))
     {
@@ -552,8 +506,6 @@ int main()
             // Marches the simulation forward by elapsed_time
             ode(rb, elapsed_time);
             //ode(rb2, elapsed_time);
-
-            //print_rigid_body(rb);
 
 
             draw_ui(rb);
@@ -594,9 +546,8 @@ int main()
             glUniformMatrix4fv(glGetUniformLocation(program, "view"), 1, GL_FALSE, glm::value_ptr(view));
 
             glUseProgram(program);
-            glBindVertexArray(vao);
-            glDrawElements(GL_TRIANGLES, sizeof(indices) / sizeof(unsigned int), GL_UNSIGNED_INT, nullptr);
 
+            m->draw();
 
             /*
             model = glm::translate(glm::mat4(1.0), rb2.x) * glm::toMat4(rb2.q);
