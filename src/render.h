@@ -25,8 +25,8 @@ class Geometry
 class GeometryFactory
 {
     public:
-        static const std::shared_ptr<Geometry> load(const std::vector<Vertex>& vertices, const std::vector<unsigned int>& indices);
-        static const std::shared_ptr<Geometry> load_sphere(float radius, uint32_t resolution);
+        static const std::shared_ptr<Geometry> load(const std::vector<Vertex>& vertices, const std::vector<glm::uvec3>& indices);
+        static const std::shared_ptr<Geometry> load_sphere(float radius, uint32_t subdivisions);
         static const std::shared_ptr<Geometry> load_rect(float width, float height, float depth);
         static const std::shared_ptr<Geometry> load_plane(float width, float height);
 };
@@ -35,12 +35,12 @@ class Mesh : public Geometry
 {
     private:
         std::vector<Vertex> vertices;
-        std::vector<unsigned int> indices;
+        std::vector<glm::uvec3> indices;
 
         unsigned int vao, vbo, ebo;
 
     public:
-        Mesh(const std::vector<Vertex>& vertices, const std::vector<unsigned int>& indices);
+        Mesh(const std::vector<Vertex>& vertices, const std::vector<glm::uvec3>& indices);
         ~Mesh();
         Mesh(const Mesh&) = delete;
         Mesh& operator=(const Mesh&) = delete;
