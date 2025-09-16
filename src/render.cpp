@@ -10,46 +10,50 @@ const std::shared_ptr<Geometry> GeometryFactory::load_sphere(float radius, uint3
 {
     // Generate base icosphere
     float phi = (1.0f + std::sqrt(5.0f)) * 0.5f;
-    float a = 1.0f;
-    float b = 1.0f / phi;
+
+    float a = std::sqrt(1.0 / (1 + (phi * phi)));
+    float c = a * phi;
+
     std::vector<Vertex> vertices = 
     {
-        { {0.0, b, -a}, {0.0, b, -a} },
-        { {b, a, 0.0}, {b, a, 0.0} },
-        { {-b, a, 0.0}, {-b, a, 0.0} },
-        { {0.0, b, a}, {0.0, b, a} },
-        { {0.0, -b, a}, {0.0, -b, a} },
-        { {-a, 0.0, b}, {-a, 0.0, b} },
-        { {0.0, -b, -a}, {0.0, -b, -a} },
-        { {a, 0.0, -b}, {a, 0.0, -b} },
-        { {a, 0.0, b}, {a, 0.0, b} },
-        { {-a, 0.0, -b}, {-a, 0.0, -b} },
-        { {b, -a, 0.0}, {b, -a, 0.0} },
-        { {-b, -a, 0.0}, {-b, -a, 0.0} },
+        { {-c, -a, 0.0}, {1.0, 0.0, 0.0} },
+        { {c, -a, 0.0}, {1.0, 0.0, 0.0} },
+        { {c, a, 0.0}, {1.0, 0.0, 0.0} },
+        { {-c, a, 0.0}, {1.0, 0.0, 0.0} },
+
+        { {a, 0.0, c}, {0.0, 1.0, 0.0} },
+        { {a, 0.0, -c}, {0.0, 1.0, 0.0} },
+        { {-a, 0.0, -c}, {0.0, 1.0, 0.0} },
+        { {-a, 0.0, c}, {0.0, 1.0, 0.0} },
+
+        { {0.0, c, a}, {0.0, 0.0, 1.0} },
+        { {0.0, -c, a}, {0.0, 0.0, 1.0} },
+        { {0.0, -c, -a}, {0.0, 0.0, 1.0} },
+        { {0.0, c, -a}, {0.0, 0.0, 1.0} }
     };
 
     std::vector<glm::uvec3> indices = 
     {
-        {0, 1, 2},
-        {1, 2, 3},
-        {3, 4, 5},
-        {3, 8, 4},
-        {0, 6, 7},
-        {0, 9, 6},
-        {4, 10, 11},
-        {6, 11, 10},
-        {2, 5, 9},
-        {11, 9, 5},
-        {1, 7, 8}, 
-        {10, 8, 7},
-        {3, 5, 2}, 
-        {3, 1, 8},
-        {0, 2, 9},
-        {0, 7, 1},
-        {6, 9, 11},
-        {6, 10, 7},
-        {4, 11, 5},
-        {4, 8, 10}
+        {0, 7, 3},
+        {0, 9, 7},
+        {7, 8, 3},
+        {7, 4, 8},
+        {7, 9, 4},
+        {9, 1, 4},
+        {4, 1, 2},
+        {4, 2, 8},
+        {2, 11, 8},
+        {8, 11, 3},
+        {9, 10, 1},
+        {10, 9, 0},
+        {1, 10, 5},
+        {1, 5, 2},
+        {2, 5, 11},
+        {5, 6, 11},
+        {6, 3, 11},
+        {5, 6, 10},
+        {0, 3, 6},
+        {10, 0, 6}
     };
 
     // Subdivide mesh
@@ -182,8 +186,11 @@ Mesh::~Mesh()
     glDeleteBuffers(1, &ebo);
 }
 
-void Mesh::draw() const
+void Mesh::draw(unsigned int shader, const glm::mat4& model) const
 {
+    glUseProgram(shader);
+    glUniformMatrix4fv(glGetUniformLocation(shader, "model"), 1, GL_FALSE, glm::value_ptr(model));
+
     glBindVertexArray(vao);
     glDrawElements(GL_TRIANGLES, indices.size() * 3, GL_UNSIGNED_INT, nullptr);
 }

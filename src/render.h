@@ -10,6 +10,11 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/quaternion.hpp>
 
+
+/*
+    Should each geometry object hold it's own transform / model matrix or should that be held separately and then tell it to draw it at a given transform?
+*/
+
 struct Vertex 
 {
     glm::vec3 pos;
@@ -19,7 +24,7 @@ struct Vertex
 class Geometry
 {
     public:
-        virtual void draw() const = 0;
+        virtual void draw(unsigned int shader, const glm::mat4&) const = 0;
 };
 
 class GeometryFactory
@@ -47,7 +52,7 @@ class Mesh : public Geometry
         Mesh(Mesh&&) = delete;
         Mesh& operator=(const Mesh&&) = delete;
 
-        void draw() const override;
+        void draw(unsigned int shader, const glm::mat4& model) const override;
 };
 
 
@@ -60,7 +65,7 @@ class MeshBatch : public Geometry
 
     public:
         MeshBatch(uint32_t size);
-        void draw() const override;
+        void draw(unsigned int shader, const glm::mat4& model) const override;
         bool push(const std::vector<Vertex>& vertices, const std::vector<unsigned int>& indices);
 };
 

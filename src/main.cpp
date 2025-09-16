@@ -144,9 +144,13 @@ void compute_force_and_torque(double t, RigidBody& rb)
 
     // Add constant forces
     // Gravity
-    glm::vec3 gravity = glm::vec3(0.0, 0.0, 0.0);
+    glm::vec3 gravity = glm::vec3(0.0, -9.8, 0.0);
     gravity *= t;
     force += gravity;
+
+    glm::vec3 inst_torque = glm::vec3(0.0, 0.0, 0.0);
+    inst_torque *= t;
+    torque += inst_torque;
     
     // These are actually technically impulse and impulsive torque since we are multiplying by time
     // But it doesn't really matter as long as we are consistent
@@ -257,7 +261,9 @@ int main()
 
     glClearColor(0.3, 0.3, 0.3, 1.0);
 
-    std::shared_ptr<Geometry> m = GeometryFactory::load_sphere(1.0, 1);
+    std::shared_ptr<Geometry> sphere = GeometryFactory::load_sphere(1.0, 1);
+    std::shared_ptr<Geometry> plane = GeometryFactory::load_plane(10.0, 10.0);
+    std::shared_ptr<Geometry> m = GeometryFactory::load_rect(1.0, 2.0, 1.0);
     unsigned int program;
 
     if(!load_shader("../shader/default.vert", "../shader/default.frag", &program))
@@ -281,15 +287,26 @@ int main()
  
     std::cout << "Starting simulation" << std::endl;
 
-    double mass = 10.0;
+    const double mass = 10.0;
     glm::vec3 dimensions = {1.0, 1.0, 1.0};
 
-    const glm::mat3 Ibody = 
+    /*const glm::mat3 Ibody = 
     {
         {mass / 12.0 * ( (dimensions[1] * dimensions[1]) + (dimensions[2] * dimensions[2]) ), 0.0, 0.0},
         {0.0, mass / 12.0 * ( (dimensions[0] * dimensions[0]) + (dimensions[2] * dimensions[2]) ), 0.0},
         {0.0, 0.0, mass / 12.0 * ( (dimensions[0] * dimensions[0]) + (dimensions[1] * dimensions[1]) )}
-    }; 
+    }; */
+
+    const double radius = 1.0;
+
+    const double inertia_scale = (2.0 / 5.0) * mass * radius * radius;
+
+    const glm::mat3 Ibody = 
+    {
+        { inertia_scale, 0.0, 0.0 },
+        { 0.0, inertia_scale, 0.0 },
+        { 0.0, 0.0, inertia_scale }
+    };
 
     RigidBody rb = 
     {
@@ -331,7 +348,7 @@ int main()
     double previous_xpos, previous_ypos;
     glfwGetCursorPos(window, &previous_xpos, &previous_ypos);
     double theta, phi;
-    double radius = 5.0;
+    double cam_radius = 5.0;
 
 
     IMGUI_CHECKVERSION();
@@ -478,26 +495,19 @@ int main()
             double theta_radian = glm::radians(theta);
             double phi_radian = glm::radians(phi);
 
-            glm::mat4 view = glm::lookAt(glm::vec3(radius * sin(-theta_radian) * cos(phi_radian), radius * sin(phi_radian), radius * cos(-theta_radian) * cos(phi_radian)), glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, 1.0, 0.0));
+            glm::mat4 view = glm::lookAt(glm::vec3(cam_radius * sin(-theta_radian) * cos(phi_radian), cam_radius * sin(phi_radian), cam_radius * cos(-theta_radian) * cos(phi_radian)), glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, 1.0, 0.0));
 
             // Display objects
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
             glUseProgram(program);
 
-            glUniformMatrix4fv(glGetUniformLocation(program, "model"), 1, GL_FALSE, glm::value_ptr(model));
             glUniformMatrix4fv(glGetUniformLocation(program, "view"), 1, GL_FALSE, glm::value_ptr(view));
 
             glUseProgram(program);
 
-            m->draw();
-
-            /*
-            model = glm::translate(glm::mat4(1.0), rb2.x) * glm::toMat4(rb2.q);
-            glUniformMatrix4fv(glGetUniformLocation(program, "model"), 1, GL_FALSE, glm::value_ptr(model));
-
-            glDrawElements(GL_TRIANGLES, sizeof(indices) / sizeof(unsigned int), GL_UNSIGNED_INT, nullptr);*/
-
+            sphere->draw(program, model);
+            plane->draw(program, glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -2.0f, 0.0)));
 
             /*
             glUseProgram(aabb_program);
