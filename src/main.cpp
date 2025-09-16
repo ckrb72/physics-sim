@@ -40,6 +40,13 @@ std::queue<Impulse> impulses;
 const int MAX_AABB = 10;
 const int AABB_VERT_COUNT = 8;
 
+double cam_radius = 5.0;
+
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
+{
+    cam_radius -= 0.2 * yoffset;
+}
+
 void print_mat3(const glm::mat3& m)
 {
     for (int r = 0; r < 3; r++)
@@ -144,7 +151,7 @@ void compute_force_and_torque(double t, RigidBody& rb)
 
     // Add constant forces
     // Gravity
-    glm::vec3 gravity = glm::vec3(0.0, -9.8, 0.0);
+    glm::vec3 gravity = glm::vec3(0.0, 0.0, 0.0);
     gravity *= t;
     force += gravity;
 
@@ -248,6 +255,7 @@ int main()
     }
 
     glfwMakeContextCurrent(window);
+    glfwSetScrollCallback(window, scroll_callback);
 
 
     if(!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
@@ -261,7 +269,9 @@ int main()
 
     glClearColor(0.3, 0.3, 0.3, 1.0);
 
-    std::shared_ptr<Geometry> sphere = GeometryFactory::load_sphere(1.0, 1);
+    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
+    std::shared_ptr<Geometry> sphere = GeometryFactory::load_sphere(1.0, 2);
     std::shared_ptr<Geometry> plane = GeometryFactory::load_plane(10.0, 10.0);
     std::shared_ptr<Geometry> m = GeometryFactory::load_rect(1.0, 2.0, 1.0);
     unsigned int program;
@@ -348,7 +358,6 @@ int main()
     double previous_xpos, previous_ypos;
     glfwGetCursorPos(window, &previous_xpos, &previous_ypos);
     double theta, phi;
-    double cam_radius = 5.0;
 
 
     IMGUI_CHECKVERSION();
@@ -486,6 +495,7 @@ int main()
                 theta += xdelta;
                 phi += ydelta; 
             }
+            
             
             
             if (phi >= 89.0) phi = 89.0;

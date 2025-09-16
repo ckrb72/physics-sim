@@ -1,6 +1,12 @@
 #include "render.h"
 #include <glad/glad.h>
 
+static glm::vec3 slerp(const glm::vec3& a, const glm::vec3& b, double t)
+{
+    float theta = acos(glm::dot(a, b));
+    return glm::normalize(( (float)((sin(1.0 - t) * theta) / sin(theta)) * a ) + ( (float)(sin(t * theta) / sin(theta)) * b ));
+}
+
 const std::shared_ptr<Geometry> GeometryFactory::load(const std::vector<Vertex>& vertices, const std::vector<glm::uvec3>& indices)
 {
     return std::make_shared<Mesh>(vertices, indices);
@@ -16,20 +22,20 @@ const std::shared_ptr<Geometry> GeometryFactory::load_sphere(float radius, uint3
 
     std::vector<Vertex> vertices = 
     {
-        { {-c, -a, 0.0}, {1.0, 0.0, 0.0} },
-        { {c, -a, 0.0}, {1.0, 0.0, 0.0} },
-        { {c, a, 0.0}, {1.0, 0.0, 0.0} },
-        { {-c, a, 0.0}, {1.0, 0.0, 0.0} },
+        { {-c, -a, 0.0}, {-c, -a, 0.0} },
+        { {c, -a, 0.0}, {c, -a, 0.0} },
+        { {c, a, 0.0}, {c, a, 0.0} },
+        { {-c, a, 0.0}, {-c, a, 0.0} },
 
-        { {a, 0.0, c}, {0.0, 1.0, 0.0} },
-        { {a, 0.0, -c}, {0.0, 1.0, 0.0} },
-        { {-a, 0.0, -c}, {0.0, 1.0, 0.0} },
-        { {-a, 0.0, c}, {0.0, 1.0, 0.0} },
+        { {a, 0.0, c}, {a, 0.0, c} },
+        { {a, 0.0, -c}, {a, 0.0, -c} },
+        { {-a, 0.0, -c}, {-a, 0.0, -c} },
+        { {-a, 0.0, c}, {-a, 0.0, c} },
 
-        { {0.0, c, a}, {0.0, 0.0, 1.0} },
-        { {0.0, -c, a}, {0.0, 0.0, 1.0} },
-        { {0.0, -c, -a}, {0.0, 0.0, 1.0} },
-        { {0.0, c, -a}, {0.0, 0.0, 1.0} }
+        { {0.0, c, a}, {0.0, c, a} },
+        { {0.0, -c, a}, {0.0, -c, a} },
+        { {0.0, -c, -a}, {0.0, -c, -a} },
+        { {0.0, c, -a}, {0.0, c, -a} }
     };
 
     std::vector<glm::uvec3> indices = 
@@ -59,7 +65,39 @@ const std::shared_ptr<Geometry> GeometryFactory::load_sphere(float radius, uint3
     // Subdivide mesh
     for (int i = 0; i < subdivisions; i++)
     {
-        
+        std::vector<Vertex> new_vertices;
+        std::vector<glm::uvec3> new_indices;
+
+        uint32_t index_offset = 0;
+
+        for (glm::uvec3 tri : indices)
+        {
+            glm::vec3 reference_dir = glm::vec3(0.0f, 0.0f, 1.0f);
+            glm::vec3 a = vertices[tri[0]].pos;
+            glm::vec3 b = vertices[tri[1]].pos;
+            glm::vec3 c = vertices[tri[2]].pos;
+ 
+            
+            glm::vec3 ab = slerp(a, b, 0.5f);
+            glm::vec3 bc = slerp(b, c, 0.5f);
+            glm::vec3 ca = slerp(c, a, 0.5f);
+
+            new_vertices.push_back({ a, a });
+            new_vertices.push_back({ ab, ab}); 
+            new_vertices.push_back({ b, b });
+            new_vertices.push_back({ bc, bc });
+            new_vertices.push_back({ c, c });
+            new_vertices.push_back({ ca, ca });
+
+            new_indices.push_back({index_offset, index_offset + 1, index_offset + 5});
+            new_indices.push_back({index_offset + 1, index_offset + 2, index_offset + 3});
+            new_indices.push_back({index_offset + 1, index_offset + 3, index_offset + 5});
+            new_indices.push_back({index_offset + 5, index_offset + 3, index_offset + 4});
+            index_offset += 6;
+       }
+
+        vertices = new_vertices;
+        indices = new_indices;
     }
 
     return load(vertices, indices);
