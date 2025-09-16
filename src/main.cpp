@@ -256,65 +256,8 @@ int main()
 
 
     glClearColor(0.3, 0.3, 0.3, 1.0);
-    unsigned int vao, vbo, ebo;
 
-
-    std::vector<Vertex> vert_vec = 
-    {
-        { {-0.5, -0.5, 0.5},  {0.0, 0.0, 1.0} },
-        { {0.5, -0.5, 0.5},   {0.0, 0.0, 1.0} },
-        { {0.5, 0.5, 0.5},    {0.0, 0.0, 1.0} },
-        { {-0.5, 0.5, 0.5},   {0.0, 0.0, 1.0} },
-
-        { {0.5, -0.5, -0.5},    {0.0, 0.0, -1.0} },
-        { {-0.5, -0.5, -0.5},   {0.0, 0.0, -1.0} },
-        { {-0.5, 0.5, -0.5},    {0.0, 0.0, -1.0} },
-        { {0.5, 0.5, -0.5},     {0.0, 0.0, -1.0} },
-
-        { {-0.5, -0.5, -0.5},   {-1.0, 0.0, 0.0} },
-        { {-0.5, -0.5, 0.5},   {-1.0, 0.0, 0.0} },
-        { {-0.5, 0.5, 0.5},   {-1.0, 0.0, 0.0} },
-        { {-0.5, 0.5, -0.5},   {-1.0, 0.0, 0.0} },
-
-        { {0.5, -0.5, 0.5},    {1.0, 0.0, 0.0} },
-        { {0.5, -0.5, -0.5},    {1.0, 0.0, 0.0} },
-        { {0.5, 0.5, -0.5},    {1.0, 0.0, 0.0} },
-        { {0.5, 0.5, 0.5},    {1.0, 0.0, 0.0} },
-
-        { {-0.5, 0.5, 0.5},    {0.0, 1.0, 0.0} },
-        { {0.5, 0.5, 0.5},    {0.0, 1.0, 0.0} },
-        { {0.5, 0.5, -0.5},    {0.0, 1.0, 0.0} },
-        { {-0.5, 0.5, -0.5},    {0.0, 1.0, 0.0} },
-
-        { {-0.5, -0.5, -0.5},   {0.0, -1.0, 0.0} },
-        { {0.5, -0.5, -0.5},    {0.0, -1.0, 0.0} },
-        { {0.5, -0.5, 0.5},    {0.0, -1.0, 0.0} },
-        { {-0.5, -0.5, 0.5},    {0.0, -1.0, 0.} }
-    };
-
-    std::vector<unsigned int> indx_vec = 
-    {
-        0, 1, 2,
-        2, 3, 0,
-
-        4, 5, 6,
-        6, 7, 4,
-
-        8, 9, 10,
-        10, 11, 8,
-
-        12, 13, 14,
-        14, 15, 12,
-
-        16, 17, 18,
-        18, 19, 16,
-
-        20, 21, 22,
-        22, 23, 20
-    };
-
-    std::shared_ptr<Geometry> m = GeometryFactory::load(vert_vec, indx_vec);
-
+    std::shared_ptr<Geometry> m = GeometryFactory::load_sphere(1.0, 1);
     unsigned int program;
 
     if(!load_shader("../shader/default.vert", "../shader/default.frag", &program))
@@ -353,7 +296,7 @@ int main()
         .mass = mass,
         .Ibody = Ibody,
         .IbodyInv = glm::inverse(Ibody),
-        .x = glm::vec3(-5.0, 0.0, 0.0),    // Position = origin
+        .x = glm::vec3(0.0, 0.0, 0.0),    // Position = origin
         .q = glm::angleAxis(glm::radians(0.0f), glm::vec3(1.0, 0.0, 0.0)), // Orientation = 0 degree around x axis
         .P = glm::vec3(0.0, 0.0, 0.0),   // Linear momentum
         .L = glm::vec3(0.0, 0.0, 0.0)   // Angular Momentum
@@ -579,11 +522,6 @@ int main()
             elapsed_time = 0.0;
         }
     }
-
-
-    glDeleteBuffers(1, &vao);
-    glDeleteBuffers(1, &vbo);
-    glDeleteBuffers(1, &ebo);
 
     glBindBuffer(0, GL_ARRAY_BUFFER);
     glBindBuffer(0, GL_ELEMENT_ARRAY_BUFFER);

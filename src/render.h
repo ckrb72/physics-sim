@@ -1,6 +1,7 @@
 #pragma once
 #include <iostream>
 #include <vector>
+#include <unordered_map>
 
 #include <queue>
 #define GLM_ENABLE_EXPERIMENTAL
@@ -25,8 +26,9 @@ class GeometryFactory
 {
     public:
         static const std::shared_ptr<Geometry> load(const std::vector<Vertex>& vertices, const std::vector<unsigned int>& indices);
-        static const std::shared_ptr<Geometry> load_sphere(uint32_t radius, uint32_t resolution);
-        static const std::shared_ptr<Geometry> load_cube(uint32_t width, uint32_t height);
+        static const std::shared_ptr<Geometry> load_sphere(float radius, uint32_t resolution);
+        static const std::shared_ptr<Geometry> load_rect(float width, float height, float depth);
+        static const std::shared_ptr<Geometry> load_plane(float width, float height);
 };
 
 class Mesh : public Geometry
@@ -54,6 +56,7 @@ class MeshBatch : public Geometry
     private:
         uint32_t offset;
         unsigned int vao, vbo, ebo;
+        unsigned int shader;
 
     public:
         MeshBatch(uint32_t size);
@@ -74,15 +77,27 @@ struct Transform
 class Renderer
 {
     private:
+        // Indexed by id
         std::vector<Mesh> meshes;
         std::vector<Transform> transforms;
+        std::vector<glm::mat4> world_matrices;
+
+        // Holds available ids
         std::queue<int32_t> free_list;
+
+        // Mapping of ids to their children
+        std::unordered_map<int32_t, std::vector<int32_t>> hierarchies;
+
+        // Render State Information
+        // Probably want to sort / batch / break up draws by shader id
+        unsigned int bound_shader;
 
     public:
         Renderer(uint32_t buf_size);
 
         int32_t load(const std::vector<Vertex&> vertices, const std::vector<unsigned int>& indices);
-
+        int32_t load(const std::string& path);
+        
         void set_transform(int32_t id);
 
         void set_visible(int32_t id);
@@ -90,4 +105,6 @@ class Renderer
         void remove(int32_t id);
 
         const std::vector<Vertex>& get_vertices(int32_t id);
+
+        void reparent(int32_t id, int32_t parent);
 };
