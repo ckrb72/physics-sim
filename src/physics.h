@@ -1,12 +1,76 @@
 #pragma once
 #include <vector>
 #include <queue>
-
+#include <memory>
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/quaternion.hpp>
+
+class CollisionShape
+{
+    public:
+        virtual bool collide() = 0;
+        virtual glm::mat4 body_mat() = 0;
+};
+/*
+class BoxShape : public CollisionShape
+{
+    private:
+        glm::vec3 half_extent;
+
+    public:
+        BoxShape(glm::vec3 half_extent);
+        bool collide() override;
+        glm::mat4 body_mat() override;
+};
+
+// The origin of this sphere is in "body space" so it will always be 0, 0, 0. In the physics body it is attached to the position will change
+class SphereShape : public CollisionShape
+{
+    private:
+        double r;
+
+    public:
+        SphereShape(double radius);
+        bool collide() override;
+        glm::mat4 body_mat() override;
+};
+
+// The point used for this plane is in "body space" so it will always be 0, 0, 0. In the physics body it is attached to the position will change
+class PlaneShape : public CollisionShape
+{
+    private:
+        glm::vec3 norm;
+
+    public:
+        PlaneShape(glm::vec3 norm);
+        bool collide() override;
+        glm::mat4 body_mat() override;
+};*/
+
+class PhysicsBody
+{
+    private:
+        double mass;
+        glm::mat4 Ibody;
+        glm::mat4 IbodyInv;
+        std::shared_ptr<CollisionShape> collider;
+
+        glm::vec3 position;
+        glm::quat orientation;
+
+        glm::vec3 linear_momentum;
+        glm::vec3 angular_momentum;
+
+    public:
+        PhysicsBody(std::shared_ptr<CollisionShape> collider, double mass);
+
+        glm::vec3 get_position() const;
+        glm::quat get_orientation() const;
+        glm::mat4 get_world_matrix() const;
+};
 
 struct RigidBody
 {

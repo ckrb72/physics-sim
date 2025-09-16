@@ -234,6 +234,7 @@ void ode(RigidBody& rb, double delta)
     rb.q = glm::normalize(rb.qdot + (0.5f * rb.q));
 }
 
+
 void draw_ui(RigidBody& rb);
 
 int main()
@@ -273,9 +274,9 @@ int main()
 
     std::shared_ptr<Geometry> sphere = GeometryFactory::load_sphere(1.0, 2);
     std::shared_ptr<Geometry> plane = GeometryFactory::load_plane(10.0, 10.0);
-    std::shared_ptr<Geometry> m = GeometryFactory::load_rect(1.0, 2.0, 1.0);
-    unsigned int program;
+    std::shared_ptr<Geometry> right_plane = GeometryFactory::load_plane(10.0, 10.0);
 
+    unsigned int program;
     if(!load_shader("../shader/default.vert", "../shader/default.frag", &program))
     {
         std::cout << "Failed to load shader" << std::endl;
@@ -284,19 +285,13 @@ int main()
     }
 
     glm::mat4 perspective = glm::perspective(glm::radians(90.0f), (float)WIN_WIDTH / (float)WIN_HEIGHT, 0.1f, 50.0f);
-
     glm::mat4 view = glm::lookAt(glm::vec3(0.0f, 0.0f, 5.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0));
     
-    glm::mat4 model = glm::rotate(glm::mat4(1.0f), glm::radians(45.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-
-
     glUseProgram(program);
     glUniformMatrix4fv(glGetUniformLocation(program, "projection"), 1, GL_FALSE, glm::value_ptr(perspective));
     glUniformMatrix4fv(glGetUniformLocation(program, "view"), 1, GL_FALSE, glm::value_ptr(view));
-    glUniformMatrix4fv(glGetUniformLocation(program, "model"), 1, GL_FALSE, glm::value_ptr(model));
- 
-    std::cout << "Starting simulation" << std::endl;
 
+ 
     const double mass = 10.0;
     glm::vec3 dimensions = {1.0, 1.0, 1.0};
 
@@ -369,93 +364,6 @@ int main()
     ImGui_ImplOpenGL3_Init();
 
 
-    unsigned int aabb_vao, aabb_vbo, aabb_ebo;
-    glGenVertexArrays(1, &aabb_vao);
-    glGenBuffers(1, &aabb_vbo);
-    glGenBuffers(1, &aabb_ebo);
-
-    float test_aabb[] =  
-    {
-        -0.5, -0.5, 0.5,
-        0.5, -0.5, 0.5,
-        0.5, 0.5, 0.5,
-        -0.5, 0.5, 0.5,
-
-        0.5, -0.5, -0.5,
-        -0.5, -0.5, -0.5,
-        -0.5, 0.5, -0.5,
-        0.5, 0.5, -0.5
-    };
-
-
-    glBindVertexArray(aabb_vao);
-    glBindBuffer(GL_ARRAY_BUFFER, aabb_vbo);
-    glBufferData(GL_ARRAY_BUFFER, MAX_AABB * AABB_VERT_COUNT * 3 * sizeof(float), nullptr, GL_DYNAMIC_DRAW);
-
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
-
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, aabb_ebo);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, MAX_AABB * 24 * sizeof(unsigned int), nullptr, GL_DYNAMIC_DRAW);
-
-
-    unsigned int aabb_indices[] =
-    {
-        0, 1,
-        1, 2,
-        2, 3,
-        3, 0,
-        4, 5,
-        5, 6,
-        6, 7,
-        7, 4,
-        1, 4,
-        2, 7,
-        0, 5,
-        3, 6,
-    };
-
-
-    // Offset computation:
-    // vbo: count * AABB_VERT_COUNT * AABB_VERT_SIZE
-    // ebo: count * AABB_INDX_COUNT * sizeof(unsigned int)
-
-    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(test_aabb), test_aabb);
-    glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, sizeof(aabb_indices), aabb_indices);
-
-    glBindVertexArray(0);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-
-
-    unsigned int point_vao, point_vbo;
-    glGenVertexArrays(1, &point_vao);
-    glGenBuffers(1, &point_vbo);
-
-    float points[] =
-    {
-        -1.0, 1.0, 2.0
-    };
-
-    glBindVertexArray(point_vao);
-    glBindBuffer(GL_ARRAY_BUFFER, point_vbo);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(points), points, GL_DYNAMIC_DRAW);
-
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
-
-    glBindVertexArray(0);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-    unsigned int aabb_program;
-    if (!load_shader("../shader/aabb.vert", "../shader/aabb.frag", &aabb_program))
-    {
-        std::cerr << "Failed to load aabb shader" << std::endl;
-        exit(EXIT_FAILURE);
-    }
-
-    glPointSize(10.0f);
-
     //impulses.push({0, 0.2, {0.0, 0.0, 0.0}, {100.0, 100.0, 100.0}});
 
     while(!glfwWindowShouldClose(window))
@@ -511,34 +419,17 @@ int main()
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
             glUseProgram(program);
-
             glUniformMatrix4fv(glGetUniformLocation(program, "view"), 1, GL_FALSE, glm::value_ptr(view));
 
-            glUseProgram(program);
-
             sphere->draw(program, model);
-            plane->draw(program, glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -2.0f, 0.0)));
-
-            /*
-            glUseProgram(aabb_program);
-
-            glUniformMatrix4fv(glGetUniformLocation(aabb_program, "projection"), 1, GL_FALSE, glm::value_ptr(perspective));
-            glUniformMatrix4fv(glGetUniformLocation(aabb_program, "view"), 1, GL_FALSE, glm::value_ptr(view));
-
-            glBindVertexArray(aabb_vao);
-
-            glDrawElements(GL_LINES, 24, GL_UNSIGNED_INT, nullptr);
-            
-            glBindVertexArray(point_vao);
-            glDrawArrays(GL_POINTS, 0, 1);
-            */ 
+            plane->draw(program, glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -3.0f, 0.0)));
+            right_plane->draw(program, glm::rotate(glm::translate(glm::mat4(1.0f), glm::vec3(5.0f, 2.0f, 0.0f)), glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f)));
             
             ImGui::Render();
             ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
             glfwSwapBuffers(window);
  
-
             elapsed_time = 0.0;
         }
     }
