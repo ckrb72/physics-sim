@@ -272,9 +272,14 @@ int main()
 
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
-    std::shared_ptr<Geometry> sphere = GeometryFactory::load_sphere(1.0, 2);
+    std::shared_ptr<Geometry> sphere = GeometryFactory::load_sphere(1.0, 3);
     std::shared_ptr<Geometry> plane = GeometryFactory::load_plane(10.0, 10.0);
     std::shared_ptr<Geometry> right_plane = GeometryFactory::load_plane(10.0, 10.0);
+
+    PhysicsWorld world;
+    int32_t id = world.create_body(std::make_shared<BoxShape>(glm::vec3(1.0f)), glm::vec3(1.0, 1.0, 1.0), glm::angleAxis(0.0f, glm::vec3(1.0, 0.0, 0.0)), 100.0);
+
+    glfwSwapInterval(0);
 
     unsigned int program;
     if(!load_shader("../shader/default.vert", "../shader/default.frag", &program))
@@ -323,26 +328,6 @@ int main()
         .P = glm::vec3(0.0, 0.0, 0.0),   // Linear momentum
         .L = glm::vec3(0.0, 0.0, 0.0)   // Angular Momentum
     };
-
-    double mass2 = 1.0;
-
-    const glm::mat3 Ibody2 = 
-    {
-        {mass2 / 12.0 * ( (dimensions[1] * dimensions[1]) + (dimensions[2] * dimensions[2]) ), 0.0, 0.0},
-        {0.0, mass2 / 12.0 * ( (dimensions[0] * dimensions[0]) + (dimensions[2] * dimensions[2]) ), 0.0},
-        {0.0, 0.0, mass2 / 12.0 * ( (dimensions[0] * dimensions[0]) + (dimensions[1] * dimensions[1]) )} 
-    };
-
-    RigidBody rb2 =
-    {
-        .mass = mass2,
-        .Ibody = Ibody2,
-        .IbodyInv = glm::inverse(Ibody),
-        .x = glm::vec3(3.0, 0.0, 0.0),
-        .q = glm::angleAxis(glm::radians(0.0f), glm::vec3(0.0, 0.0, 1.0)),
-        .P = glm::vec3(0.0, 0.0, 0.0),
-        .L = glm::vec3(0.0, 0.0, 0.0)
-    };
     
     glEnable(GL_DEPTH_TEST);
     double previous_time = glfwGetTime();
@@ -380,15 +365,15 @@ int main()
         {
             // Run simulation
 
-            // Marches the simulation forward by elapsed_time
             ode(rb, elapsed_time);
             //ode(rb2, elapsed_time);
 
+            // Marches the simulation forward by elapsed_time
+            world.update(elapsed_time);
+
+            glm::mat4 model = world.get_world_matrix(id);
 
             draw_ui(rb);
-
-            // Rotate then translate the object
-            glm::mat4 model = glm::translate(glm::mat4(1.0), rb.x) * glm::toMat4(rb.q);
 
             double current_xpos, current_ypos;
             glfwGetCursorPos(window, &current_xpos, &current_ypos);
@@ -403,7 +388,6 @@ int main()
                 theta += xdelta;
                 phi += ydelta; 
             }
-            
             
             
             if (phi >= 89.0) phi = 89.0;
