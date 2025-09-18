@@ -19,24 +19,6 @@
 #include "render.h"
 #include "physics.h"
 
-/*
-
-    Questions:
-        I'm technically thinking of things in terms of impulse and impulsive torque rather than forces and torques. This makes it easier to work with momentum
-        since you just add impulse to momentum. The big implication of this is that my engine computes things based on time deltas rather than computing the force at an arbitrary given time.
-        Will this screw me over in the long run or is this okay?
-
-        How should I be architecting this? Should impulses be their own objects that you can assign to rigid bodies or should they be something else?
-
-*/
-
-// This is an example of an impulse queue for a specific rigid body.
-// When we add multiple bodies will want to have one of these for each body.
-// Might want to put these in a map so can easily add impulses to different bodies (std::map<uint32_t, std::queue<Impulse>>)
-// Then each frame every rigid body goes through its queue and dequeues the impulse, computes the force and torque then subtracts the delta time
-// from impulse.time. If there is still time remaining, place it back in the queue for next frame.
-std::queue<Impulse> impulses;
-
 const int MAX_AABB = 10;
 const int AABB_VERT_COUNT = 8;
 
@@ -67,7 +49,7 @@ void compute_force_and_torque(double t, RigidBody& rb)
     glm::vec3 torque = glm::vec3(0.0);
 
 
-    int impulse_count = impulses.size();
+    /*int impulse_count = impulses.size();
 
     for (int i = 0; i < impulse_count; i++)
     {
@@ -89,7 +71,7 @@ void compute_force_and_torque(double t, RigidBody& rb)
         impulse.time -= time;
 
         if (impulse.time > 0.0) impulses.push(impulse);
-    }
+    }*/
 
 
     // Add constant forces
@@ -291,8 +273,7 @@ int main()
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init();
 
-
-    //impulses.push({0, 0.2, {0.0, 0.0, 0.0}, {100.0, 100.0, 100.0}});
+    world.set_linear_velocity(id, glm::vec3(0.0f, 9.8f, 0.0f));
 
     while(!glfwWindowShouldClose(window))
     {

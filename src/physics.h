@@ -94,8 +94,8 @@ class PhysicsBody
 {
     private:
         double mass = 0.0;
-        glm::mat4 Ibody = glm::mat4(1.0);
-        glm::mat4 IbodyInv = glm::mat4(1.0);
+        glm::mat3 Ibody = glm::mat3(1.0);
+        glm::mat3 IbodyInv = glm::mat3(1.0);
         std::shared_ptr<PhysicsShape> shape = nullptr;
 
         glm::vec3 position = glm::vec3(0.0);
@@ -106,17 +106,6 @@ class PhysicsBody
 
         glm::vec3 force = glm::vec3(0.0);
         glm::vec3 torque = glm::vec3(0.0);
-
-        struct BodyDifferentials
-        {
-            glm::mat3 Iinv;
-            glm::vec3 v;
-            glm::vec3 omega;
-            glm::mat3 R;
-            glm::quat qdot;
-        };
-
-        BodyDifferentials ddt();
 
     public:
         PhysicsBody(std::shared_ptr<PhysicsShape> shape, double mass);
@@ -133,6 +122,12 @@ class PhysicsBody
 
         void add_force(const glm::vec3& force);
         void add_torque(const glm::vec3& torque);
+
+        // Creates an instantaneous change in velocity (either linear or angular depending on the function used)
+        void add_impulse(const glm::vec3& impulse);
+        void add_impulsive_torque(const glm::vec3& impulsive_torque);
+
+        std::vector<uint8_t> serialize() const;
 
         void step(double delta);
 };

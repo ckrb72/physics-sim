@@ -22,7 +22,16 @@ int32_t PhysicsWorld::create_body(std::shared_ptr<PhysicsShape> shape, const glm
 
 glm::mat4 PhysicsWorld::get_world_matrix(int32_t id)
 {
+    if (id < 0 || id > bodies.size() - 1) return {};
+
     return bodies[id].get_world_matrix();
+}
+
+void PhysicsWorld::set_linear_velocity(int32_t id, const glm::vec3& v)
+{
+    if (id < 0 || id > bodies.size() - 1) return;
+
+    bodies[id].set_linear_velocity(v);
 }
 
 

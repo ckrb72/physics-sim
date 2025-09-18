@@ -70,13 +70,32 @@ void PhysicsBody::set_orientation(const glm::vec3& orientation)
 
 void PhysicsBody::step(double delta)
 {
-    glm::vec3 velocity;
-    velocity.x = linear_momentum.x / mass;
-    velocity.y = linear_momentum.y / mass;
-    velocity.z = linear_momentum.z / mass;
-    velocity *= delta;
 
-    position += velocity;
+    // Add the forces that were accumulated over the frame to their respective momenta
+    // TODO: Might want to multiply these times delta here?
+    linear_momentum += force;
+    angular_momentum += torque;
+
+    // Get both velocities
+    glm::vec3 linear_velocity;
+    linear_velocity.x = linear_momentum.x / mass;
+    linear_velocity.y = linear_momentum.y / mass;
+    linear_velocity.z = linear_momentum.z / mass;
+    linear_velocity *= delta;
+
+    orientation = glm::normalize(orientation);
+    glm::mat3 R = glm::toMat3(orientation);
+    glm::mat3 inertia_inv = R * IbodyInv * glm::transpose(R);
+
+    glm::vec3 angular_velocity = inertia_inv * angular_momentum;
+    angular_velocity *= delta;
+
+    glm::quat angular_vel_quat = glm::quat(0.0f, angular_velocity);
+    glm::quat orientation_delta = angular_vel_quat * orientation;
+    orientation_delta *= 0.5;
+
+    position += linear_velocity;
+    orientation = glm::normalize(orientation_delta + (0.5f * orientation));
 
     force = glm::vec3(0.0);
     torque = glm::vec3(0.0);
