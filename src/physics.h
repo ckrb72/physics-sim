@@ -93,19 +93,19 @@ class CylinderShape : public PhysicsShape
 class PhysicsBody
 {
     private:
-        double mass;
-        glm::mat4 Ibody;
-        glm::mat4 IbodyInv;
-        std::shared_ptr<PhysicsShape> shape;
+        double mass = 0.0;
+        glm::mat4 Ibody = glm::mat4(1.0);
+        glm::mat4 IbodyInv = glm::mat4(1.0);
+        std::shared_ptr<PhysicsShape> shape = nullptr;
 
-        glm::vec3 position;
-        glm::quat orientation;
+        glm::vec3 position = glm::vec3(0.0);
+        glm::quat orientation = glm::vec3(0.0);
 
-        glm::vec3 linear_momentum;
-        glm::vec3 angular_momentum;
+        glm::vec3 linear_momentum = glm::vec3(0.0);
+        glm::vec3 angular_momentum = glm::vec3(0.0);
 
-        glm::vec3 force;
-        glm::vec3 torque;
+        glm::vec3 force = glm::vec3(0.0);
+        glm::vec3 torque = glm::vec3(0.0);
 
         struct BodyDifferentials
         {

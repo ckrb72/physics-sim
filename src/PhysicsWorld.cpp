@@ -29,9 +29,6 @@ glm::mat4 PhysicsWorld::get_world_matrix(int32_t id)
 // TODO: Make it so update runs multiple steps if delta > 1 / 60
 void PhysicsWorld::update(double delta)
 {
-    NOT_IMPLEMENTED();
-    std::cout << "Delta: " << delta << std::endl;
-
     // Check body collisions and update forces appropriately
 
 
@@ -42,5 +39,6 @@ void PhysicsWorld::update(double delta)
 
         // Add forces as needed (if two objects collide, constant forces, etc.)
         body.add_force(glm::vec3(0.0, -9.8, 0.0));
+        body.step(delta);
     }
 }
