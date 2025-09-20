@@ -1,4 +1,5 @@
 #include "physics.h"
+#include "util.h"
 
 PhysicsBody::PhysicsBody(std::shared_ptr<PhysicsShape> shape, double mass)
 :shape(shape), mass(mass), position(0.0), orientation(glm::angleAxis(0.0f, glm::vec3(1.0, 0.0, 0.0)))
@@ -99,4 +100,10 @@ void PhysicsBody::step(double delta)
 
     force = glm::vec3(0.0);
     torque = glm::vec3(0.0);
+}
+
+std::vector<uint8_t> PhysicsBody::serialize() const 
+{
+    NOT_IMPLEMENTED();
+    return {};
 }

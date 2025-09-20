@@ -15,12 +15,28 @@ struct AABBox
     glm::vec3 position;
 };
 
+enum ShapeType
+{
+    SHAPE,
+    SPHERE,
+    PLANE,
+    BOX
+};
+
+// Change this up completely...
+// Make these just be a tag essentially that tells what type of shape it is
+// Then have a method that gets the data for that specific shape and have the actual
+// collision detector do all of the work with the collision stuff by passing the data into a function or something.
 class PhysicsShape
 {
+    protected:
+        ShapeType type = ShapeType::SHAPE;
+
     public:
-        virtual bool collide() = 0;
         virtual glm::mat3 get_body_mat() = 0;
         virtual AABBox get_aabb() = 0;
+        //virtual std::vector<uint8_t> get_data() = 0;
+        inline ShapeType get_type() const { return type; }
 };
 
 //Maybe make a distinction between collision shapes and physics shapes???
@@ -33,7 +49,6 @@ class BoxShape : public PhysicsShape
 
     public:
         BoxShape(glm::vec3 half_extent);
-        bool collide() override;
         glm::mat3 get_body_mat() override;
         AABBox get_aabb() override;
 };
@@ -46,7 +61,6 @@ class SphereShape : public PhysicsShape
 
     public:
         SphereShape(double radius);
-        bool collide() override;
         glm::mat3 get_body_mat() override;
         AABBox get_aabb() override;
 };
@@ -60,7 +74,6 @@ class PlaneShape : public PhysicsShape
 
     public:
         PlaneShape(const glm::vec3& norm, const glm::vec3& extent);
-        bool collide() override;
         glm::mat3 get_body_mat() override;
         AABBox get_aabb() override;
 };
@@ -108,6 +121,7 @@ class PhysicsBody
         glm::vec3 torque = glm::vec3(0.0);
 
     public:
+        PhysicsBody() = delete;
         PhysicsBody(std::shared_ptr<PhysicsShape> shape, double mass);
         PhysicsBody(std::shared_ptr<PhysicsShape> shape, const glm::vec3& position, const glm::quat& orientation, double mass);
 
@@ -121,6 +135,7 @@ class PhysicsBody
         void set_orientation(const glm::vec3& orientation);
 
         void add_force(const glm::vec3& force);
+        void add_force(const glm::vec3& force, const glm::vec3& pos);
         void add_torque(const glm::vec3& torque);
 
         // Creates an instantaneous change in velocity (either linear or angular depending on the function used)

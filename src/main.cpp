@@ -18,6 +18,7 @@
 
 #include "render.h"
 #include "physics.h"
+#include "util.h"
 
 const int MAX_AABB = 10;
 const int AABB_VERT_COUNT = 8;
@@ -38,126 +39,6 @@ void glfw_error_fun(int error, const char* err_desc)
 
 const int WIN_WIDTH = 1920;
 const int WIN_HEIGHT = 1080;
-
-// Computes Force and Torque over time t and places them in rb
-// This actually technically calculates the impulse and impulsive torque OVER the time t,
-// not the force and torque AT time t.
-void compute_force_and_torque(double t, RigidBody& rb)
-{
-    // Compute force and torque from impulses
-    glm::vec3 force = glm::vec3(0.0);
-    glm::vec3 torque = glm::vec3(0.0);
-
-
-    /*int impulse_count = impulses.size();
-
-    for (int i = 0; i < impulse_count; i++)
-    {
-        Impulse& impulse = impulses.front();
-        impulses.pop();
-
-        glm::vec3 j = impulse.force;
-        double time;
-
-        // Time is either the delta of the frame (t) or the time remaining on the impulse (impulse.time)
-        if (t <= impulse.time) time = t;
-        else time = impulse.time;
-
-        j *= time;
-
-        force += j;
-        torque += glm::cross((impulse.pos - rb.x), j);
-
-        impulse.time -= time;
-
-        if (impulse.time > 0.0) impulses.push(impulse);
-    }*/
-
-
-    // Add constant forces
-    // Gravity
-    glm::vec3 gravity = glm::vec3(0.0, 0.0, 0.0);
-    gravity *= t;
-    force += gravity;
-
-    glm::vec3 inst_torque = glm::vec3(0.0, 0.0, 0.0);
-    inst_torque *= t;
-    torque += inst_torque;
-    
-    // These are actually technically impulse and impulsive torque since we are multiplying by time
-    // But it doesn't really matter as long as we are consistent
-    rb.force = force;
-
-    rb.torque = torque;
-    rb.torque *= t;
-}
-
-// TODO: Have dydt place the force and torque (and other per frame variables) into their own struct and return it (makes no sense to place it in RigidBody if it is per frame)
-
-// Takes a and transforms it into a_star
-void vec_to_mat_star(glm::vec3 a, glm::mat3& a_star)
-{
-    //TODO: Check to make sure this is okay
-    a_star[0][0] = 0.0;
-    a_star[0][1] = -a.z;
-    a_star[0][2] = a.y;
-
-    a_star[1][0] = a.z;
-    a_star[1][1] = 0.0;
-    a_star[1][2] = -a.x;
-
-    a_star[2][0] = -a.y;
-    a_star[2][1] = a.x;
-    a_star[2][2] = 0.0;
-}
-
-// Computes instantaneous changes of rb at time t and places the data into dydt
-void dydt(double t, RigidBody& rb)
-{
-    // Compute Velocity
-    rb.v[0] = rb.P[0] / rb.mass;
-    rb.v[1] = rb.P[1] / rb.mass;
-    rb.v[2] = rb.P[2] / rb.mass;
-    rb.v *= t;      // Scale by time
-    
-    rb.q = glm::normalize(rb.q);
-    rb.R = glm::toMat3(rb.q);
-
-   
-    // Compute inverse Inertia tensor
-    rb.Iinv = rb.R * rb.IbodyInv * glm::transpose(rb.R);
-
-    // Compute angular velocity
-    rb.omega = rb.Iinv * rb.L;
-
-    compute_force_and_torque(t, rb);
-
-    // Compute qdot (Instantaneous rate of change of orientation encoded in quaternion)
-    glm::quat omega_q = glm::quat(0.0f, rb.omega);
-    rb.qdot = (omega_q * rb.q);
-    rb.qdot *= 0.5;
-    rb.qdot *= t;
-}
-
-// TODO: add logic to handle the case that delta is too large (split the integration into multiple steps);
-void ode(RigidBody& rb, double delta)
-{
-    // Compute derivatives
-    dydt(delta, rb);
-
-    // TOOD: Might want to rename these fields to impulse and impulsive torque since that makes more sense
-    // Add force (technically impulse) to linear momentum
-    rb.P += rb.force;
-
-    // Add torque (technically impulsive torque) to angular momentum
-    rb.L += rb.torque;
-
-    // Compute new position and orientation
-    rb.x += rb.v;
-
-    // FIXME: This might be wrong
-    rb.q = glm::normalize(rb.qdot + (0.5f * rb.q));
-}
 
 
 void draw_ui(RigidBody& rb);
@@ -195,7 +76,7 @@ int main()
 
     glClearColor(0.3, 0.3, 0.3, 1.0);
 
-    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
     std::shared_ptr<Geometry> sphere = GeometryFactory::load_sphere(1.0, 3);
     std::shared_ptr<Geometry> plane = GeometryFactory::load_plane(10.0, 10.0);
@@ -221,39 +102,6 @@ int main()
     glUniformMatrix4fv(glGetUniformLocation(program, "projection"), 1, GL_FALSE, glm::value_ptr(perspective));
     glUniformMatrix4fv(glGetUniformLocation(program, "view"), 1, GL_FALSE, glm::value_ptr(view));
 
- 
-    const double mass = 10.0;
-    glm::vec3 dimensions = {1.0, 1.0, 1.0};
-
-    /*const glm::mat3 Ibody = 
-    {
-        {mass / 12.0 * ( (dimensions[1] * dimensions[1]) + (dimensions[2] * dimensions[2]) ), 0.0, 0.0},
-        {0.0, mass / 12.0 * ( (dimensions[0] * dimensions[0]) + (dimensions[2] * dimensions[2]) ), 0.0},
-        {0.0, 0.0, mass / 12.0 * ( (dimensions[0] * dimensions[0]) + (dimensions[1] * dimensions[1]) )}
-    }; */
-
-    const double radius = 1.0;
-
-    const double inertia_scale = (2.0 / 5.0) * mass * radius * radius;
-
-    const glm::mat3 Ibody = 
-    {
-        { inertia_scale, 0.0, 0.0 },
-        { 0.0, inertia_scale, 0.0 },
-        { 0.0, 0.0, inertia_scale }
-    };
-
-    RigidBody rb = 
-    {
-        .mass = mass,
-        .Ibody = Ibody,
-        .IbodyInv = glm::inverse(Ibody),
-        .x = glm::vec3(0.0, 0.0, 0.0),    // Position = origin
-        .q = glm::angleAxis(glm::radians(0.0f), glm::vec3(1.0, 0.0, 0.0)), // Orientation = 0 degree around x axis
-        .P = glm::vec3(0.0, 0.0, 0.0),   // Linear momentum
-        .L = glm::vec3(0.0, 0.0, 0.0)   // Angular Momentum
-    };
-    
     glEnable(GL_DEPTH_TEST);
     double previous_time = glfwGetTime();
     double elapsed_time = 0.0;
@@ -273,7 +121,7 @@ int main()
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init();
 
-    world.set_linear_velocity(id, glm::vec3(0.0f, 9.8f, 0.0f));
+    //world.set_linear_velocity(id, glm::vec3(0.0f, 9.8f, 0.0f));
 
     while(!glfwWindowShouldClose(window))
     {
@@ -289,15 +137,14 @@ int main()
         {
             // Run simulation
 
-            ode(rb, elapsed_time);
-            //ode(rb2, elapsed_time);
+            ImGui_ImplOpenGL3_NewFrame();
+            ImGui_ImplGlfw_NewFrame();
+            ImGui::NewFrame();
 
             // Marches the simulation forward by elapsed_time
             world.update(elapsed_time);
 
             glm::mat4 model = world.get_world_matrix(id);
-
-            draw_ui(rb);
 
             double current_xpos, current_ypos;
             glfwGetCursorPos(window, &current_xpos, &current_ypos);

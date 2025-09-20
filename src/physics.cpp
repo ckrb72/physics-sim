@@ -1,15 +1,32 @@
 #include "physics.h"
 #include "util.h"
 
+    /*
+    const double mass = 10.0;
+    glm::vec3 dimensions = {1.0, 1.0, 1.0};
+
+    const glm::mat3 Ibody = 
+    {
+        {mass / 12.0 * ( (dimensions[1] * dimensions[1]) + (dimensions[2] * dimensions[2]) ), 0.0, 0.0},
+        {0.0, mass / 12.0 * ( (dimensions[0] * dimensions[0]) + (dimensions[2] * dimensions[2]) ), 0.0},
+        {0.0, 0.0, mass / 12.0 * ( (dimensions[0] * dimensions[0]) + (dimensions[1] * dimensions[1]) )}
+    }; 
+
+    const double radius = 1.0;
+
+    const double inertia_scale = (2.0 / 5.0) * mass * radius * radius;
+
+    const glm::mat3 Ibody = 
+    {
+        { inertia_scale, 0.0, 0.0 },
+        { 0.0, inertia_scale, 0.0 },
+        { 0.0, 0.0, inertia_scale }
+    };
+    */
+
 BoxShape::BoxShape(glm::vec3 half_extent)
 :half_extent(half_extent)
 {}
-
-bool BoxShape::collide()
-{
-    NOT_IMPLEMENTED();
-    return false;
-}
 
 glm::mat3 BoxShape::get_body_mat()
 {
@@ -35,12 +52,6 @@ SphereShape::SphereShape(double radius)
 :r(radius)
 {}
 
-bool SphereShape::collide()
-{
-    NOT_IMPLEMENTED();
-    return false;
-}
-
 glm::mat3 SphereShape::get_body_mat()
 {
     NOT_IMPLEMENTED();
@@ -56,12 +67,6 @@ AABBox SphereShape::get_aabb()
 PlaneShape::PlaneShape(const glm::vec3& norm, const glm::vec3& extent)
 :norm(norm), extent(extent)
 {}
-
-bool PlaneShape::collide()
-{
-    NOT_IMPLEMENTED();
-    return false;
-}
 
 glm::mat3 PlaneShape::get_body_mat()
 {
