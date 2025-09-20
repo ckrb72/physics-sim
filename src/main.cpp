@@ -83,7 +83,9 @@ int main()
     std::shared_ptr<Geometry> right_plane = GeometryFactory::load_plane(10.0, 10.0);
 
     PhysicsWorld world;
-    int32_t id = world.create_body(std::make_shared<BoxShape>(glm::vec3(1.0f)), 100.0);
+    int32_t sphere_body = world.create_body(std::make_shared<BoxShape>(glm::vec3(1.0f)), 100.0, PhysicsLayer::DYNAMIC);
+    int32_t bottom_plane_body = world.create_body(std::make_shared<PlaneShape>(glm::vec3(0.0, 1.0, 0.0), glm::vec3(10.0, 10.0, 10.0)), 1.0, PhysicsLayer::STATIC);
+    int32_t right_plane_body = world.create_body(std::make_shared<PlaneShape>(glm::vec3(-1.0, 0.0, 0.0), glm::vec3(10.0, 10.0, 10.0)), 1.0, PhysicsLayer::STATIC);
 
     glfwSwapInterval(0);
 
@@ -121,7 +123,8 @@ int main()
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init();
 
-    //world.set_linear_velocity(id, glm::vec3(0.0f, 9.8f, 0.0f));
+    world.set_linear_velocity(sphere_body, glm::vec3(0.0f, 9.8f, 0.0f));
+    world.set_global_force(glm::vec3(0.0, -9.8, 0.0));
 
     while(!glfwWindowShouldClose(window))
     {
@@ -143,8 +146,6 @@ int main()
 
             // Marches the simulation forward by elapsed_time
             world.update(elapsed_time);
-
-            glm::mat4 model = world.get_world_matrix(id);
 
             double current_xpos, current_ypos;
             glfwGetCursorPos(window, &current_xpos, &current_ypos);
@@ -176,7 +177,7 @@ int main()
             glUseProgram(program);
             glUniformMatrix4fv(glGetUniformLocation(program, "view"), 1, GL_FALSE, glm::value_ptr(view));
 
-            sphere->draw(program, model);
+            sphere->draw(program, world.get_world_matrix(sphere_body));
             plane->draw(program, glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -3.0f, 0.0)));
             right_plane->draw(program, glm::rotate(glm::translate(glm::mat4(1.0f), glm::vec3(5.0f, 2.0f, 0.0f)), glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f)));
             

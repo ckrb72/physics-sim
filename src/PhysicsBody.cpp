@@ -1,8 +1,8 @@
 #include "physics.h"
 #include "util.h"
 
-PhysicsBody::PhysicsBody(std::shared_ptr<PhysicsShape> shape, double mass)
-:shape(shape), mass(mass), position(0.0), orientation(glm::angleAxis(0.0f, glm::vec3(1.0, 0.0, 0.0)))
+PhysicsBody::PhysicsBody(std::shared_ptr<PhysicsShape> shape, double mass, PhysicsLayer layer)
+:shape(shape), mass(mass), position(0.0), orientation(glm::angleAxis(0.0f, glm::vec3(1.0, 0.0, 0.0))), layer(layer)
 {
     Ibody = shape->get_body_mat();
 
@@ -14,8 +14,8 @@ PhysicsBody::PhysicsBody(std::shared_ptr<PhysicsShape> shape, double mass)
     IbodyInv = glm::inverse(Ibody);
 }
 
-PhysicsBody::PhysicsBody(std::shared_ptr<PhysicsShape> shape, const glm::vec3& position, const glm::quat& orientation, double mass)
-:shape(shape), position(position), orientation(orientation), mass(mass)
+PhysicsBody::PhysicsBody(std::shared_ptr<PhysicsShape> shape, const glm::vec3& position, const glm::quat& orientation, double mass, PhysicsLayer layer)
+:shape(shape), position(position), orientation(orientation), mass(mass), layer(layer)
 {
     Ibody = shape->get_body_mat();
 

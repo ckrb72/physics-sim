@@ -44,10 +44,9 @@ class PhysicsShape
 
 class BoxShape : public PhysicsShape
 {
-    private:
+    public:
         glm::vec3 half_extent;
 
-    public:
         BoxShape(glm::vec3 half_extent);
         glm::mat3 get_body_mat() override;
         AABBox get_aabb() override;
@@ -56,10 +55,9 @@ class BoxShape : public PhysicsShape
 // The origin of this sphere is in "body space" so it will always be 0, 0, 0. In the physics body it is attached to the position will change
 class SphereShape : public PhysicsShape
 {
-    private:
+    public:
         double r;
 
-    public:
         SphereShape(double radius);
         glm::mat3 get_body_mat() override;
         AABBox get_aabb() override;
@@ -68,11 +66,10 @@ class SphereShape : public PhysicsShape
 // The point used for this plane is in "body space" so it will always be 0, 0, 0. In the physics body it is attached to the position will change
 class PlaneShape : public PhysicsShape
 {
-    private:
+    public:
         glm::vec3 norm;
         glm::vec3 extent;
 
-    public:
         PlaneShape(const glm::vec3& norm, const glm::vec3& extent);
         glm::mat3 get_body_mat() override;
         AABBox get_aabb() override;
@@ -103,6 +100,14 @@ class CylinderShape : public PhysicsShape
 };*/
 
 
+enum PhysicsLayer
+{
+    DYNAMIC,
+    KINEMATIC,
+    STATIC
+};
+
+
 class PhysicsBody
 {
     private:
@@ -112,7 +117,7 @@ class PhysicsBody
         std::shared_ptr<PhysicsShape> shape = nullptr;
 
         glm::vec3 position = glm::vec3(0.0);
-        glm::quat orientation = glm::vec3(0.0);
+        glm::quat orientation = glm::quat(1.0, 0.0, 0.0, 0.0);
 
         glm::vec3 linear_momentum = glm::vec3(0.0);
         glm::vec3 angular_momentum = glm::vec3(0.0);
@@ -120,10 +125,14 @@ class PhysicsBody
         glm::vec3 force = glm::vec3(0.0);
         glm::vec3 torque = glm::vec3(0.0);
 
+        PhysicsLayer layer = PhysicsLayer::STATIC;
+
+        friend class PhysicsWorld;
+
     public:
         PhysicsBody() = delete;
-        PhysicsBody(std::shared_ptr<PhysicsShape> shape, double mass);
-        PhysicsBody(std::shared_ptr<PhysicsShape> shape, const glm::vec3& position, const glm::quat& orientation, double mass);
+        PhysicsBody(std::shared_ptr<PhysicsShape> shape, double mass, PhysicsLayer layer);
+        PhysicsBody(std::shared_ptr<PhysicsShape> shape, const glm::vec3& position, const glm::quat& orientation, double mass, PhysicsLayer layer);
 
         const glm::vec3& get_position() const;
         const glm::quat& get_orientation() const;
@@ -147,21 +156,40 @@ class PhysicsBody
         void step(double delta);
 };
 
+
+struct CollisionResult
+{
+    bool colliding = false;
+    glm::vec3 norm = glm::vec3(0.0);
+};
+
 class PhysicsWorld
 {
     private:
         std::vector<PhysicsBody> bodies;
 
+
+        glm::vec3 global_force = glm::vec3(0.0);
+        glm::vec3 global_torque = glm::vec3(0.0);
+
+
+        CollisionResult check_collision(PhysicsBody& a, PhysicsBody& b);
+
     public:
         PhysicsWorld();
-        int32_t create_body(std::shared_ptr<PhysicsShape> shape, double mass);
-        int32_t create_body(std::shared_ptr<PhysicsShape> shape, const glm::vec3& position, const glm::quat& orientation, double mass);
+        int32_t create_body(std::shared_ptr<PhysicsShape> shape, double mass, PhysicsLayer layer);
+        int32_t create_body(std::shared_ptr<PhysicsShape> shape, const glm::vec3& position, const glm::quat& orientation, double mass, PhysicsLayer layer);
         void remove(int32_t id);
 
         // Body manipulation functions
         void set_linear_velocity(int32_t id, const glm::vec3& v);
         void set_angular_velocity(int32_t id, const glm::vec3& omega);
         glm::mat4 get_world_matrix(int32_t id);
+
+
+        // Global manipulation functions
+        void set_global_force(const glm::vec3& force);
+        void set_global_torque(const glm::vec3& torque);
 
         // TODO: Updates with 1 / 60 second granularity. If delta > 1 / 60 the integration step is done multiple times
         void update(double delta);  // This is where the integration actually occurs

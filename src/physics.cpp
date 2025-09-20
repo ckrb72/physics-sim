@@ -26,7 +26,10 @@
 
 BoxShape::BoxShape(glm::vec3 half_extent)
 :half_extent(half_extent)
-{}
+{
+    this->type = ShapeType::BOX;
+}
+
 
 glm::mat3 BoxShape::get_body_mat()
 {
@@ -50,7 +53,10 @@ AABBox BoxShape::get_aabb()
 
 SphereShape::SphereShape(double radius)
 :r(radius)
-{}
+{
+    this->type = ShapeType::SPHERE;
+}
+
 
 glm::mat3 SphereShape::get_body_mat()
 {
@@ -66,12 +72,22 @@ AABBox SphereShape::get_aabb()
 
 PlaneShape::PlaneShape(const glm::vec3& norm, const glm::vec3& extent)
 :norm(norm), extent(extent)
-{}
+{
+    this->type = ShapeType::PLANE;
+}
 
 glm::mat3 PlaneShape::get_body_mat()
 {
-    NOT_IMPLEMENTED();
-    return glm::mat4(1.0f);
+    glm::vec3 dimensions;
+    dimensions.x = extent.x * 2.0;
+    dimensions.y = extent.y * 2.0;
+    dimensions.z = extent.z * 2.0;
+
+    return {
+        {1.0 / 12.0 * ( (dimensions[1] * dimensions[1]) + (dimensions[2] * dimensions[2]) ), 0.0, 0.0},
+        {0.0, 1.0 / 12.0 * ( (dimensions[0] * dimensions[0]) + (dimensions[2] * dimensions[2]) ), 0.0},
+        {0.0, 0.0, 1.0 / 12.0 * ( (dimensions[0] * dimensions[0]) + (dimensions[1] * dimensions[1]) )}
+    };
 }
 
 AABBox PlaneShape::get_aabb()

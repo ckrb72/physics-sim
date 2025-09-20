@@ -6,17 +6,17 @@ PhysicsWorld::PhysicsWorld()
 
 }
 
-int32_t PhysicsWorld::create_body(std::shared_ptr<PhysicsShape> shape, double mass)
+int32_t PhysicsWorld::create_body(std::shared_ptr<PhysicsShape> shape, double mass, PhysicsLayer layer)
 {
     int32_t id = bodies.size();
-    bodies.push_back(PhysicsBody(shape, mass));
+    bodies.push_back(PhysicsBody(shape, mass, layer));
     return id;
 }
 
-int32_t PhysicsWorld::create_body(std::shared_ptr<PhysicsShape> shape, const glm::vec3& position, const glm::quat& orientation, double mass)
+int32_t PhysicsWorld::create_body(std::shared_ptr<PhysicsShape> shape, const glm::vec3& position, const glm::quat& orientation, double mass, PhysicsLayer layer)
 {
     int32_t id = bodies.size();
-    bodies.push_back(PhysicsBody(shape, position, orientation, mass));
+    bodies.push_back(PhysicsBody(shape, position, orientation, mass, layer));
     return id;
 }
 
@@ -34,37 +34,56 @@ void PhysicsWorld::set_linear_velocity(int32_t id, const glm::vec3& v)
     bodies[id].set_linear_velocity(v);
 }
 
+void PhysicsWorld::set_global_force(const glm::vec3& force)
+{
+    global_force = force;
+}
+
+CollisionResult PhysicsWorld::check_collision(PhysicsBody& a, PhysicsBody& b)
+{
+    // Sort by shape type
+    if (a.shape->get_type() > b.shape->get_type())
+    {
+        std::swap(a, b);
+    }
+
+    // Call correct function depending on a and b's types
+    //return collision_func[a.shape->get_type()][b.shape->get_type()](a, b); 
+
+    return CollisionResult{};
+}
 
 // TODO: Make it so update runs multiple steps if delta > 1 / 60
 void PhysicsWorld::update(double delta)
 {
     // Check body collisions and update forces appropriately
 
-    /*for (int i = 0; i < bodies.size(); i++)
+    for (int i = 0; i < bodies.size(); i++)
     {
         for (int j = 0; j < bodies.size(); j++)
         {
             if (i == j) continue;
 
             // Do collision detection here
-            PhysicsBody& a = bodies[i];
-            PhysicsBody& b = bodies[j];
+
+            CollisionResult result = check_collision(bodies[i], bodies[j]);
 
         }
-    }*/
+    }
 
 
     for (PhysicsBody& body : bodies)
     {
-
         // Update body position
+        if (body.layer == PhysicsLayer::DYNAMIC)
+        {
+            // Add forces as needed (if two objects collide, constant forces, etc.)
+            body.add_force(global_force);
 
-        // Add forces as needed (if two objects collide, constant forces, etc.)
-        //body.add_force(glm::vec3(0.0, -9.8, 0.0));
-
-        // Move this outside of the physics body.
-        // Body shouldn't be responsible for stepping itself
-        body.step(delta);
+            // Move this outside of the physics body.
+            // Body shouldn't be responsible for stepping itself
+            body.step(delta); 
+        }
     }
 }
 
