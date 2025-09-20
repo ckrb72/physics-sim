@@ -42,10 +42,10 @@ void PhysicsWorld::set_global_force(const glm::vec3& force)
 CollisionResult PhysicsWorld::check_collision(PhysicsBody& a, PhysicsBody& b)
 {
     // Sort by shape type
-    if (a.shape->get_type() > b.shape->get_type())
+    /*if (a.shape->get_type() > b.shape->get_type())
     {
         std::swap(a, b);
-    }
+    }*/
 
     // Call correct function depending on a and b's types
     //return collision_func[a.shape->get_type()][b.shape->get_type()](a, b); 
@@ -66,7 +66,7 @@ void PhysicsWorld::update(double delta)
 
             // Do collision detection here
 
-            CollisionResult result = check_collision(bodies[i], bodies[j]);
+            //CollisionResult result = check_collision(bodies[i], bodies[j]);
 
         }
     }

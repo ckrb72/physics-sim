@@ -70,8 +70,8 @@ AABBox SphereShape::get_aabb()
     return AABBox{};
 }
 
-PlaneShape::PlaneShape(const glm::vec3& norm, const glm::vec3& extent)
-:norm(norm), extent(extent)
+PlaneShape::PlaneShape(const glm::vec3& extent)
+:extent(extent)
 {
     this->type = ShapeType::PLANE;
 }

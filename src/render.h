@@ -2,6 +2,7 @@
 #include <iostream>
 #include <vector>
 #include <unordered_map>
+#include <string>
 
 #include <queue>
 #define GLM_ENABLE_EXPERIMENTAL
@@ -14,6 +15,9 @@
 /*
     Should each geometry object hold it's own transform / model matrix or should that be held separately and then tell it to draw it at a given transform?
 */
+
+std::string read_file(const std::string& path);
+bool load_shader(const std::string& vertex_path, const std::string& fragment_path, unsigned int* program_ptr);
 
 struct Vertex 
 {

@@ -67,10 +67,9 @@ class SphereShape : public PhysicsShape
 class PlaneShape : public PhysicsShape
 {
     public:
-        glm::vec3 norm;
         glm::vec3 extent;
 
-        PlaneShape(const glm::vec3& norm, const glm::vec3& extent);
+        PlaneShape(const glm::vec3& extent);
         glm::mat3 get_body_mat() override;
         AABBox get_aabb() override;
 };

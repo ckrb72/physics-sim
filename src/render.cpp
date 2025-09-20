@@ -1,5 +1,6 @@
 #include "render.h"
 #include <glad/glad.h>
+#include <fstream>
 
 static glm::vec3 slerp(const glm::vec3& a, const glm::vec3& b, double t)
 {
@@ -231,4 +232,102 @@ void Mesh::draw(unsigned int shader, const glm::mat4& model) const
 
     glBindVertexArray(vao);
     glDrawElements(GL_TRIANGLES, indices.size() * 3, GL_UNSIGNED_INT, nullptr);
+}
+
+std::string read_file(const std::string& path)
+{
+    std::ifstream file;
+    file.open(path, std::ios::in);
+
+    if(!file.is_open())
+    {
+        std::cout << "failed to open file" << std::endl;
+
+        return "";
+    }
+
+    std::string str;
+    std::string line;
+
+    while(std::getline(file, line))
+    {
+        str += line + "\n";
+    }
+
+    file.close();
+
+    return str;
+}
+
+bool load_shader(const std::string& vertex_path, const std::string& fragment_path, unsigned int* program_ptr)
+{
+    const int MAX_LOG = 512;
+    int success;
+    char log[MAX_LOG];
+
+    std::string vertex_str = read_file(vertex_path);
+
+    const char* const vertex_src = vertex_str.c_str();
+
+    unsigned int vertex_shader = glCreateShader(GL_VERTEX_SHADER);
+    glShaderSource(vertex_shader, 1, &vertex_src, nullptr);
+    glCompileShader(vertex_shader);
+
+    glGetShaderiv(vertex_shader, GL_COMPILE_STATUS, &success);
+    if(!success)
+    {
+        glGetShaderInfoLog(vertex_shader, MAX_LOG, nullptr, log);
+        std::cerr << "Vertex: " << std::endl;
+        std::cerr << log << std::endl;
+        glDeleteShader(vertex_shader);
+        return false;
+    }
+
+    std::string fragment_str = read_file(fragment_path);
+
+    const char* const fragment_src = fragment_str.c_str();
+
+    unsigned int fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
+    glShaderSource(fragment_shader, 1, &fragment_src, nullptr);
+    glCompileShader(fragment_shader);
+
+    glGetShaderiv(fragment_shader, GL_COMPILE_STATUS, &success);
+    if(!success)
+    {
+        glGetShaderInfoLog(fragment_shader, MAX_LOG, nullptr, log);
+        std::cerr << "Fragment: " << std::endl;
+        std::cerr << log << std::endl;
+        glDeleteShader(vertex_shader);
+        glDeleteShader(fragment_shader);
+        return false;
+    }
+
+    unsigned int program = glCreateProgram();
+    glAttachShader(program, vertex_shader);
+    glAttachShader(program, fragment_shader);
+    glLinkProgram(program);
+
+    glGetProgramiv(program, GL_LINK_STATUS, &success);
+    if(!success)
+    {
+        glGetProgramInfoLog(program, MAX_LOG, nullptr, log);
+        std::cerr << "Linker: " << std::endl;
+        std::cerr << log << std::endl;
+        glDetachShader(program, vertex_shader);
+        glDetachShader(program, fragment_shader);
+        glDeleteShader(vertex_shader);
+        glDeleteShader(fragment_shader);
+        glDeleteProgram(program);
+        return false;
+    }
+
+    glDetachShader(program, vertex_shader);
+    glDetachShader(program, fragment_shader);
+
+    glDeleteShader(vertex_shader);
+    glDeleteShader(fragment_shader);
+
+    *program_ptr = program;
+
+    return true;
 }
