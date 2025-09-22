@@ -83,9 +83,8 @@ void PhysicsBody::step(double delta)
 {
 
     // Add the forces that were accumulated over the frame to their respective momenta
-    // TODO: Might want to multiply these times delta here?
     linear_momentum += impulse;
-    force *= delta;  // Force * time * mass = velocity * mass = Impulse of force F over time T on object with mass M
+    force *= delta;  // Force * time = impulse = change in momentum caused by force F over time t
     linear_momentum += force;
 
     angular_momentum += torque_impulse;
@@ -97,20 +96,21 @@ void PhysicsBody::step(double delta)
     linear_velocity.x = linear_momentum.x / mass;
     linear_velocity.y = linear_momentum.y / mass;
     linear_velocity.z = linear_momentum.z / mass;
-    linear_velocity *= delta;
 
     orientation = glm::normalize(orientation);
     glm::mat3 R = glm::toMat3(orientation);
     glm::mat3 inertia_inv = R * IbodyInv * glm::transpose(R);
 
     glm::vec3 angular_velocity = inertia_inv * angular_momentum;
-    angular_velocity *= delta;
-
     glm::quat angular_vel_quat = glm::quat(0.0f, angular_velocity);
     glm::quat orientation_delta = angular_vel_quat * orientation;
-    orientation_delta *= 0.5;
+    orientation_delta *= 0.5 * delta;
 
-    position += linear_velocity;
+    // Change in position = velocity * time
+    glm::vec3 position_delta = linear_velocity;
+    position_delta *= delta;
+
+    position += position_delta;
     orientation = glm::normalize(orientation_delta + (0.5f * orientation));
 
     force = glm::vec3(0.0);
