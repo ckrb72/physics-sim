@@ -39,6 +39,23 @@ void PhysicsWorld::set_global_force(const glm::vec3& force)
     global_force = force;
 }
 
+BodyInfo PhysicsWorld::get_info(int32_t id) const
+{
+    if (id < 0 || id > bodies.size()) return {};
+    const PhysicsBody& body = bodies[id];
+    return BodyInfo{
+        .mass = body.mass,
+        .position = body.position,
+        .orientation = body.orientation,
+        .linear_momentum = body.linear_momentum,
+        .angular_momentum = body.angular_momentum,
+        .force = body.force,
+        .impulse = body.impulse,
+        .torque = body.torque,
+        .torque_impulse = body.torque_impulse
+    };
+}
+
 CollisionResult PhysicsWorld::check_collision(PhysicsBody& a, PhysicsBody& b)
 {
     // Sort by shape type
@@ -77,8 +94,10 @@ void PhysicsWorld::update(double delta)
         // Update body position
         if (body.layer == PhysicsLayer::DYNAMIC)
         {
-            // Add forces as needed (if two objects collide, constant forces, etc.)
-            body.add_force(global_force);
+            // Add forces (impulses instead?) as needed (if two objects collide, constant forces, etc.)
+            // FIXME: This should not be done every frame. The forces on an object should not be set every frame???
+            // Impulses should be able to be added to an object with a vector given in N*s that should not be multiplied by delta
+            body.add_impulse(global_force);
 
             // Move this outside of the physics body.
             // Body shouldn't be responsible for stepping itself

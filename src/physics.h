@@ -121,8 +121,21 @@ class PhysicsBody
         glm::vec3 linear_momentum = glm::vec3(0.0);
         glm::vec3 angular_momentum = glm::vec3(0.0);
 
+        // Units: N
+        // Multiplied by delta then added to momentum
         glm::vec3 force = glm::vec3(0.0);
+
+        // Units: Ns
+        // Added to momentum directly
+        glm::vec3 impulse = glm::vec3(0.0);
+
+        // Units: Nm
+        // Multiplied by delta then added to angular momentum
         glm::vec3 torque = glm::vec3(0.0);
+
+        // Units: Nms
+        // Added to angular momentum directly
+        glm::vec3 torque_impulse = glm::vec3(0.0);
 
         PhysicsLayer layer = PhysicsLayer::STATIC;
 
@@ -148,11 +161,26 @@ class PhysicsBody
 
         // Creates an instantaneous change in velocity (either linear or angular depending on the function used)
         void add_impulse(const glm::vec3& impulse);
-        void add_impulsive_torque(const glm::vec3& impulsive_torque);
+        void add_torque_impulse(const glm::vec3& torque_impulse);
 
         std::vector<uint8_t> serialize() const;
 
         void step(double delta);
+};
+
+struct BodyInfo
+{
+    double mass = 0.0;
+    glm::vec3 position = glm::vec3(0.0);
+    glm::quat orientation = glm::quat(1.0, 0.0, 0.0, 0.0);
+
+    glm::vec3 linear_momentum = glm::vec3(0.0);
+    glm::vec3 angular_momentum = glm::vec3(0.0);
+
+    glm::vec3 force = glm::vec3(0.0);
+    glm::vec3 impulse = glm::vec3(0.0);
+    glm::vec3 torque = glm::vec3(0.0);
+    glm::vec3 torque_impulse = glm::vec3(0.0);
 };
 
 
@@ -189,6 +217,8 @@ class PhysicsWorld
         // Global manipulation functions
         void set_global_force(const glm::vec3& force);
         void set_global_torque(const glm::vec3& torque);
+
+        BodyInfo get_info(int32_t id) const;
 
         // TODO: Updates with 1 / 60 second granularity. If delta > 1 / 60 the integration step is done multiple times
         void update(double delta);  // This is where the integration actually occurs

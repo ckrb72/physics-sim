@@ -41,7 +41,7 @@ const int WIN_WIDTH = 1920;
 const int WIN_HEIGHT = 1080;
 
 
-void draw_ui(RigidBody& rb);
+void draw_ui(const BodyInfo& rb);
 
 int main()
 {
@@ -84,8 +84,8 @@ int main()
 
     PhysicsWorld world;
     int32_t sphere_body = world.create_body(std::make_shared<BoxShape>(glm::vec3(1.0f)), 100.0, PhysicsLayer::DYNAMIC);
-    int32_t bottom_plane_body = world.create_body(std::make_shared<PlaneShape>(glm::vec3(10.0, 10.0, 10.0)), glm::vec3(0.0, -3.0, 0.0), glm::angleAxis(0.0f, glm::vec3(1.0, 0.0, 0.0)), 1.0, PhysicsLayer::STATIC);
-    int32_t testing_stuff = world.create_body(std::make_shared<PlaneShape>(glm::vec3(10.0, 10.0, 10.0)), glm::vec3(5.0, 2.0, 0.0), glm::angleAxis(glm::radians(90.0f), glm::vec3(0.0, 0.0, 1.0)), 1.0, PhysicsLayer::STATIC);
+    //int32_t bottom_plane_body = world.create_body(std::make_shared<PlaneShape>(glm::vec3(10.0, 10.0, 10.0)), glm::vec3(0.0, -3.0, 0.0), glm::angleAxis(0.0f, glm::vec3(1.0, 0.0, 0.0)), 1.0, PhysicsLayer::STATIC);
+    //int32_t testing_stuff = world.create_body(std::make_shared<PlaneShape>(glm::vec3(10.0, 10.0, 10.0)), glm::vec3(5.0, 2.0, 0.0), glm::angleAxis(glm::radians(90.0f), glm::vec3(0.0, 0.0, 1.0)), 1.0, PhysicsLayer::STATIC);
 
     
     std::cout << "Rigid Bodies Created..." << std::endl;
@@ -144,10 +144,6 @@ int main()
         {
             // Run simulation
 
-            ImGui_ImplOpenGL3_NewFrame();
-            ImGui_ImplGlfw_NewFrame();
-            ImGui::NewFrame();
-
             // Marches the simulation forward by elapsed_time
             world.update(elapsed_time);
 
@@ -182,8 +178,11 @@ int main()
             glUniformMatrix4fv(glGetUniformLocation(program, "view"), 1, GL_FALSE, glm::value_ptr(view));
 
             sphere->draw(program, world.get_world_matrix(sphere_body));
-            plane->draw(program, world.get_world_matrix(bottom_plane_body));
-            right_plane->draw(program, world.get_world_matrix(testing_stuff));
+            //plane->draw(program, world.get_world_matrix(bottom_plane_body));
+            //right_plane->draw(program, world.get_world_matrix(testing_stuff));
+
+            draw_ui(world.get_info(sphere_body));
+            ImGui::EndFrame();
 
             ImGui::Render();
             ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
@@ -211,7 +210,7 @@ int main()
 }
 
 
-void draw_ui(RigidBody& rb)
+void draw_ui(const BodyInfo& rb)
 {
     // Build UI
     ImGui_ImplOpenGL3_NewFrame();
@@ -233,19 +232,22 @@ void draw_ui(RigidBody& rb)
 
     ImGui::Text("Mass: %f", rb.mass);
     ImGui::Spacing();
-    ImGui::Text("Position: %f %f %f", rb.x.x, rb.x.y, rb.x.z);
+    ImGui::Text("Position: %f %f %f", rb.position.x, rb.position.y, rb.position.z);
     ImGui::Spacing();
-    ImGui::Text("Orientation (Quaternion): %f %f %f %f", rb.q.w, rb.q.x, rb.q.y, rb.q.z);
+    ImGui::Text("Orientation (Quaternion): %f %f %f %f", rb.orientation.w, rb.orientation.x, rb.orientation.y, rb.orientation.z);
     ImGui::Spacing();
-    ImGui::Text("Orientation (Axis Angle): TODO");
+    ImGui::Text("Linear Momentum: %f %f %f |LM|: %f", rb.linear_momentum.x, rb.linear_momentum.y, rb.linear_momentum.z, glm::length(rb.linear_momentum));
     ImGui::Spacing();
-    ImGui::Text("P: %f %f %f |P|: %f", rb.P.x, rb.P.y, rb.P.z, glm::length(rb.P));
+    ImGui::Text("Angular Momentum: %f %f %f |AM|: %f", rb.angular_momentum.x, rb.angular_momentum.y, rb.angular_momentum.z, glm::length(rb.angular_momentum));
     ImGui::Spacing();
-    ImGui::Text("L: %f %f %f |L|: %f", rb.L.x, rb.L.y, rb.L.z, glm::length(rb.L));
+    ImGui::Text("Force: %f %f %f |F|: %f", rb.force.x, rb.force.y, rb.force.z, glm::length(rb.force));
     ImGui::Spacing();
-    ImGui::Text("V: %f %f %f |V|: %f", rb.v.x, rb.v.y, rb.v.z, glm::length(rb.v));
+    ImGui::Text("Impulse: %f %f %f |Impulse|: %f", rb.impulse.x, rb.impulse.y, rb.impulse.z, glm::length(rb.impulse));
     ImGui::Spacing();
-    ImGui::Text("Omega: %f %f %f |Omega|: %f", rb.omega.x, rb.omega.y, rb.omega.z, glm::length(rb.omega));
+    ImGui::Text("Torque: %f %f %f |F|: %f", rb.torque.x, rb.torque.y, rb.torque.z, glm::length(rb.torque));
+    ImGui::Spacing();
+    ImGui::Text("Force: %f %f %f |F|: %f", rb.torque_impulse.x, rb.torque_impulse.y, rb.torque_impulse.z, glm::length(rb.torque_impulse));
+    ImGui::Spacing();
 
     ImGui::End();
 }
