@@ -34,11 +34,6 @@ void PhysicsWorld::set_linear_velocity(int32_t id, const glm::vec3& v)
     bodies[id].set_linear_velocity(v);
 }
 
-void PhysicsWorld::set_global_force(const glm::vec3& force)
-{
-    global_force = force;
-}
-
 BodyInfo PhysicsWorld::get_info(int32_t id) const
 {
     if (id < 0 || id > bodies.size()) return {};
@@ -59,10 +54,10 @@ BodyInfo PhysicsWorld::get_info(int32_t id) const
 CollisionResult PhysicsWorld::check_collision(PhysicsBody& a, PhysicsBody& b)
 {
     // Sort by shape type
-    /*if (a.shape->get_type() > b.shape->get_type())
+    if (a.shape->get_type() > b.shape->get_type())
     {
-        std::swap(a, b);
-    }*/
+        //std::swap(a, b);
+    }
 
     // Call correct function depending on a and b's types
     //return collision_func[a.shape->get_type()][b.shape->get_type()](a, b); 

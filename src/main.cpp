@@ -84,8 +84,8 @@ int main()
 
     PhysicsWorld world;
     int32_t sphere_body = world.create_body(std::make_shared<BoxShape>(glm::vec3(1.0f)), 100.0, PhysicsLayer::DYNAMIC);
-    //int32_t bottom_plane_body = world.create_body(std::make_shared<PlaneShape>(glm::vec3(10.0, 10.0, 10.0)), glm::vec3(0.0, -3.0, 0.0), glm::angleAxis(0.0f, glm::vec3(1.0, 0.0, 0.0)), 1.0, PhysicsLayer::STATIC);
-    //int32_t testing_stuff = world.create_body(std::make_shared<PlaneShape>(glm::vec3(10.0, 10.0, 10.0)), glm::vec3(5.0, 2.0, 0.0), glm::angleAxis(glm::radians(90.0f), glm::vec3(0.0, 0.0, 1.0)), 1.0, PhysicsLayer::STATIC);
+    int32_t bottom_plane_body = world.create_body(std::make_shared<PlaneShape>(glm::vec3(10.0, 10.0, 10.0)), glm::vec3(0.0, -3.0, 0.0), glm::angleAxis(0.0f, glm::vec3(1.0, 0.0, 0.0)), 1.0, PhysicsLayer::STATIC);
+    int32_t testing_stuff = world.create_body(std::make_shared<PlaneShape>(glm::vec3(10.0, 10.0, 10.0)), glm::vec3(5.0, 2.0, 0.0), glm::angleAxis(glm::radians(90.0f), glm::vec3(0.0, 0.0, 1.0)), 1.0, PhysicsLayer::STATIC);
 
     
     std::cout << "Rigid Bodies Created..." << std::endl;
@@ -177,8 +177,8 @@ int main()
             glUniformMatrix4fv(glGetUniformLocation(program, "view"), 1, GL_FALSE, glm::value_ptr(view));
 
             sphere->draw(program, world.get_world_matrix(sphere_body));
-            //plane->draw(program, world.get_world_matrix(bottom_plane_body));
-            //right_plane->draw(program, world.get_world_matrix(testing_stuff));
+            plane->draw(program, world.get_world_matrix(bottom_plane_body));
+            right_plane->draw(program, world.get_world_matrix(testing_stuff));
 
             draw_ui(world.get_info(sphere_body));
             ImGui::EndFrame();

@@ -195,12 +195,11 @@ class PhysicsWorld
     private:
         std::vector<PhysicsBody> bodies;
 
-
-        glm::vec3 global_force = glm::vec3(0.0);
-        glm::vec3 global_torque = glm::vec3(0.0);
-
-
+        CollisionResult check_sphere_plane_collision(PhysicsShape* const sphere, PhysicsShape* const plane);
         CollisionResult check_collision(PhysicsBody& a, PhysicsBody& b);
+
+        // Array of func pointers for collision tests
+
 
     public:
         PhysicsWorld();
@@ -212,11 +211,6 @@ class PhysicsWorld
         void set_linear_velocity(int32_t id, const glm::vec3& v);
         void set_angular_velocity(int32_t id, const glm::vec3& omega);
         glm::mat4 get_world_matrix(int32_t id);
-
-
-        // Global manipulation functions
-        void set_global_force(const glm::vec3& force);
-        void set_global_torque(const glm::vec3& torque);
 
         BodyInfo get_info(int32_t id) const;
 
