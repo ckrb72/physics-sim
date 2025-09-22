@@ -121,19 +121,19 @@ class PhysicsBody
         glm::vec3 linear_momentum = glm::vec3(0.0);
         glm::vec3 angular_momentum = glm::vec3(0.0);
 
-        // Units: N
+        // Units: N (kgm / s)
         // Multiplied by delta then added to momentum
         glm::vec3 force = glm::vec3(0.0);
 
-        // Units: Ns
+        // Units: Ns (kgm)
         // Added to momentum directly
         glm::vec3 impulse = glm::vec3(0.0);
 
-        // Units: Nm
+        // Units: Nm (kgm^2 / s)
         // Multiplied by delta then added to angular momentum
         glm::vec3 torque = glm::vec3(0.0);
 
-        // Units: Nms
+        // Units: Nms (kgm^2)
         // Added to angular momentum directly
         glm::vec3 torque_impulse = glm::vec3(0.0);
 

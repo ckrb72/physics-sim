@@ -94,10 +94,11 @@ void PhysicsWorld::update(double delta)
         // Update body position
         if (body.layer == PhysicsLayer::DYNAMIC)
         {
-            // Add forces (impulses instead?) as needed (if two objects collide, constant forces, etc.)
-            // FIXME: This should not be done every frame. The forces on an object should not be set every frame???
-            // Impulses should be able to be added to an object with a vector given in N*s that should not be multiplied by delta
-            body.add_impulse(global_force);
+ 
+            // Gravity = acceleration (-9.8) * mass
+            glm::vec3 gravity = glm::vec3(0.0, -9.8, 0.0);
+            gravity *= body.mass;
+            body.add_force(gravity);
 
             // Move this outside of the physics body.
             // Body shouldn't be responsible for stepping itself

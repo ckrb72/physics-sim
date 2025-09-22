@@ -85,13 +85,11 @@ void PhysicsBody::step(double delta)
     // Add the forces that were accumulated over the frame to their respective momenta
     // TODO: Might want to multiply these times delta here?
     linear_momentum += impulse;
-    force *= delta * mass;  // Force * time * mass = velocity * mass = Impulse of force F over time T on object with mass M
+    force *= delta;  // Force * time * mass = velocity * mass = Impulse of force F over time T on object with mass M
     linear_momentum += force;
 
     angular_momentum += torque_impulse;
-    
-    // TODO: Figure out how to get angular momentum from torque and do that like we did with force
-    // Likely need to multiply it by the moment of inertia tensor somehow
+    torque *= delta;
     angular_momentum += torque;
 
     // Get both velocities

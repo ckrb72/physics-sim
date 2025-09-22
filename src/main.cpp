@@ -127,7 +127,6 @@ int main()
     ImGui_ImplOpenGL3_Init();
 
     world.set_linear_velocity(sphere_body, glm::vec3(0.0f, 9.8f, 0.0f));
-    world.set_global_force(glm::vec3(0.0, -9.8, 0.0));
 
 
     while(!glfwWindowShouldClose(window))
