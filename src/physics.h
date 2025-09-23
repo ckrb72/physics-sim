@@ -209,7 +209,7 @@ class PhysicsWorld
         
         static CollisionResult check_box_box_collision(const PhysicsShape* const a, const Transform* const a_transform, const PhysicsShape* const b, const Transform* const b_transform);
         
-        CollisionResult check_collision(PhysicsBody& a, PhysicsBody& b);
+        CollisionResult check_collision(PhysicsBody* a, PhysicsBody* b);
 
         // Array of func pointers for collision tests
         typedef CollisionResult (*CollisionFunc)(const PhysicsShape* const, const Transform* const, const PhysicsShape* const, const Transform* const);

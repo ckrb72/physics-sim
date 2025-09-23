@@ -51,53 +51,73 @@ BodyInfo PhysicsWorld::get_info(int32_t id) const
     };
 }
 
-CollisionResult PhysicsWorld::check_collision(PhysicsBody& a, PhysicsBody& b)
+CollisionResult PhysicsWorld::check_collision(PhysicsBody* a, PhysicsBody* b)
 {
     // Sort by shape type
-    if (a.shape->get_type() > b.shape->get_type())
+    if (a->shape->get_type() > b->shape->get_type())
     {
-        //std::swap(a, b);
+        PhysicsBody* temp = a;
+        a = b;
+        b = temp;
     }
 
     // Call correct function depending on a and b's types
-    //return collision_func[a.shape->get_type()][b.shape->get_type()](a, b); 
-
-    return CollisionResult{};
+    return collision_funcs[a->shape->get_type()][b->shape->get_type()](&(*a->shape), &a->transform, &(*b->shape), &b->transform); 
 }
 
 CollisionResult PhysicsWorld::check_sphere_sphere_collision(const PhysicsShape* const a, const Transform* const at, const PhysicsShape* const b, const Transform* const bt)
 {
     NOT_IMPLEMENTED();
+    std::cout << "Sphere Sphere" << std::endl;
     return {};
 }
 
 CollisionResult PhysicsWorld::check_sphere_plane_collision(const PhysicsShape* const sphere, const Transform* const sphere_transform, const PhysicsShape* const plane, const Transform* const plane_transform)
 {
-    NOT_IMPLEMENTED();
-    return {};
+    SphereShape* s = (SphereShape*)sphere;
+    PlaneShape* p = (PlaneShape*)plane;
+
+    glm::vec3 plane_norm = glm::normalize(glm::rotate(plane_transform->orientation, glm::vec3(0.0, 1.0, 0.0)));
+
+    // Check collision using mathematical formula
+    double norm_projection = glm::dot(sphere_transform->position - plane_transform->position, plane_norm) / glm::length(plane_norm);
+    
+    if (std::abs(norm_projection) < s->r)
+    {
+        return CollisionResult{
+            .colliding = true,
+            .norm = glm::vec3(0.0)
+        };
+    } 
+
+    return CollisionResult{.colliding = false};
 }
 
 CollisionResult PhysicsWorld::check_sphere_box_collision(const PhysicsShape* const sphere, const Transform* const sphere_transform, const PhysicsShape* const box, const Transform* const box_transform)
 {
     NOT_IMPLEMENTED();
+    std::cout << "Sphere Box" << std::endl;
     return {};
 }
 
 CollisionResult PhysicsWorld::check_plane_plane_collision(const PhysicsShape* const a, const Transform* const a_transform, const PhysicsShape* const b, const Transform* const b_transform)
 {
-    NOT_IMPLEMENTED();
+    //NOT_IMPLEMENTED();
+    //std::cout << "Plane Plane" << std::endl;
     return {};
 }
 
 CollisionResult PhysicsWorld::check_plane_box_collision(const PhysicsShape* const plane, const Transform* const plane_transform, const PhysicsShape* const box, const Transform* const box_transform)
 {
     NOT_IMPLEMENTED();
+    std::cout << "Plane Box" << std::endl;
     return {};
 }
 
 CollisionResult PhysicsWorld::check_box_box_collision(const PhysicsShape* const a, const Transform* const a_transform, const PhysicsShape* const b, const Transform* const b_transform)
 {
     NOT_IMPLEMENTED();
+    std::cout << "Box Box" << std::endl;
     return {};
 }
         
@@ -115,7 +135,11 @@ void PhysicsWorld::update(double delta)
 
             // Do collision detection here
 
-            //CollisionResult result = check_collision(bodies[i], bodies[j]);
+            CollisionResult result = check_collision(&bodies[i], &bodies[j]);
+            if (result.colliding) 
+            {
+                std::cout << "Two objects colliding" << std::endl;
+            }
 
         }
     }
