@@ -64,11 +64,43 @@ CollisionResult PhysicsWorld::check_collision(PhysicsBody& a, PhysicsBody& b)
 
     return CollisionResult{};
 }
-CollisionResult PhysicsWorld::check_sphere_plane_collision(PhysicsShape* const sphere, Transform* at, PhysicsShape* const plane, Transform* bt)
+
+CollisionResult PhysicsWorld::check_sphere_sphere_collision(const PhysicsShape* const a, const Transform* const at, const PhysicsShape* const b, const Transform* const bt)
 {
     NOT_IMPLEMENTED();
     return {};
 }
+
+CollisionResult PhysicsWorld::check_sphere_plane_collision(const PhysicsShape* const sphere, const Transform* const sphere_transform, const PhysicsShape* const plane, const Transform* const plane_transform)
+{
+    NOT_IMPLEMENTED();
+    return {};
+}
+
+CollisionResult PhysicsWorld::check_sphere_box_collision(const PhysicsShape* const sphere, const Transform* const sphere_transform, const PhysicsShape* const box, const Transform* const box_transform)
+{
+    NOT_IMPLEMENTED();
+    return {};
+}
+
+CollisionResult PhysicsWorld::check_plane_plane_collision(const PhysicsShape* const a, const Transform* const a_transform, const PhysicsShape* const b, const Transform* const b_transform)
+{
+    NOT_IMPLEMENTED();
+    return {};
+}
+
+CollisionResult PhysicsWorld::check_plane_box_collision(const PhysicsShape* const plane, const Transform* const plane_transform, const PhysicsShape* const box, const Transform* const box_transform)
+{
+    NOT_IMPLEMENTED();
+    return {};
+}
+
+CollisionResult PhysicsWorld::check_box_box_collision(const PhysicsShape* const a, const Transform* const a_transform, const PhysicsShape* const b, const Transform* const b_transform)
+{
+    NOT_IMPLEMENTED();
+    return {};
+}
+        
 
 // TODO: Make it so update runs multiple steps if delta > 1 / 60
 void PhysicsWorld::update(double delta)

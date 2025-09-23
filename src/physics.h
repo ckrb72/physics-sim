@@ -200,17 +200,25 @@ class PhysicsWorld
     private:
         std::vector<PhysicsBody> bodies;
 
-        static CollisionResult check_sphere_plane_collision(PhysicsShape* const sphere, Transform* at, PhysicsShape* const plane, Transform* bt);
+        static CollisionResult check_sphere_sphere_collision(const PhysicsShape* const a, const Transform* const at, const PhysicsShape* const b, const Transform* const bt);
+        static CollisionResult check_sphere_plane_collision(const PhysicsShape* const sphere, const Transform* sphere_transform, const PhysicsShape* const plane, const Transform* const plane_transform);
+        static CollisionResult check_sphere_box_collision(const PhysicsShape* const sphere, const Transform* const sphere_transform, const PhysicsShape* const box, const Transform* const box_transform);
+        
+        static CollisionResult check_plane_plane_collision(const PhysicsShape* const a, const Transform* const a_transform, const PhysicsShape* const b, const Transform* const b_transform);
+        static CollisionResult check_plane_box_collision(const PhysicsShape* const plane, const Transform* const plane_transform, const PhysicsShape* const box, const Transform* const box_transform);
+        
+        static CollisionResult check_box_box_collision(const PhysicsShape* const a, const Transform* const a_transform, const PhysicsShape* const b, const Transform* const b_transform);
+        
         CollisionResult check_collision(PhysicsBody& a, PhysicsBody& b);
 
         // Array of func pointers for collision tests
-        typedef CollisionResult (*CollisionFunc)(PhysicsShape* const, Transform*, PhysicsShape* const, Transform*);
+        typedef CollisionResult (*CollisionFunc)(const PhysicsShape* const, const Transform* const, const PhysicsShape* const, const Transform* const);
         CollisionFunc collision_funcs[4][4] = 
         {
             {nullptr, nullptr, nullptr, nullptr},
-            {nullptr, nullptr/*sphere sphere*/, check_sphere_plane_collision, nullptr /*sphere box*/},
-            {nullptr, nullptr /*plane sphere*/, nullptr/*plane plane*/, nullptr /*plane box*/},
-            {nullptr, nullptr /*box sphere*/, nullptr /*box plane*/, nullptr /*box box*/}
+            {nullptr, check_sphere_sphere_collision, check_sphere_plane_collision, check_sphere_box_collision},
+            {nullptr, nullptr /*plane sphere*/, check_plane_plane_collision, check_plane_box_collision},
+            {nullptr, nullptr /*box sphere*/, nullptr /*box plane*/, check_box_box_collision}
         };
 
     public:
