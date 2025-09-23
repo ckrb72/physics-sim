@@ -73,17 +73,10 @@ class MeshBatch : public Geometry
         bool push(const std::vector<Vertex>& vertices, const std::vector<unsigned int>& indices);
 };
 
-struct Transform
-{
-    glm::vec3 pos;
-    glm::quat orientation;
-};
-
-
 // DISCUSS: Possible idea for renderer architecture
 // Physics engine just needs to generate a list of objects that have moved and their new transforms. Each frame simply go through
 // that list and update the transforms of the objects that moved. 
-class Renderer
+/*class Renderer
 {
     private:
         // Indexed by id
@@ -116,4 +109,4 @@ class Renderer
         const std::vector<Vertex>& get_vertices(int32_t id);
 
         void reparent(int32_t id, int32_t parent);
-};
+};*/

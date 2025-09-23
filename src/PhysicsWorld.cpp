@@ -40,8 +40,8 @@ BodyInfo PhysicsWorld::get_info(int32_t id) const
     const PhysicsBody& body = bodies[id];
     return BodyInfo{
         .mass = body.mass,
-        .position = body.position,
-        .orientation = body.orientation,
+        .position = body.transform.position,
+        .orientation = body.transform.orientation,
         .linear_momentum = body.linear_momentum,
         .angular_momentum = body.angular_momentum,
         .force = body.force,
@@ -63,6 +63,11 @@ CollisionResult PhysicsWorld::check_collision(PhysicsBody& a, PhysicsBody& b)
     //return collision_func[a.shape->get_type()][b.shape->get_type()](a, b); 
 
     return CollisionResult{};
+}
+CollisionResult PhysicsWorld::check_sphere_plane_collision(PhysicsShape* const sphere, Transform* at, PhysicsShape* const plane, Transform* bt)
+{
+    NOT_IMPLEMENTED();
+    return {};
 }
 
 // TODO: Make it so update runs multiple steps if delta > 1 / 60

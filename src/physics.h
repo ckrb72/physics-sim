@@ -106,6 +106,12 @@ enum PhysicsLayer
     STATIC
 };
 
+struct Transform
+{
+    glm::vec3 position = glm::vec3(0.0);
+    glm::quat orientation = glm::quat(1.0, 0.0, 0.0, 0.0);
+};
+
 
 class PhysicsBody
 {
@@ -115,8 +121,7 @@ class PhysicsBody
         glm::mat3 IbodyInv = glm::mat3(1.0);
         std::shared_ptr<PhysicsShape> shape = nullptr;
 
-        glm::vec3 position = glm::vec3(0.0);
-        glm::quat orientation = glm::quat(1.0, 0.0, 0.0, 0.0);
+        Transform transform;
 
         glm::vec3 linear_momentum = glm::vec3(0.0);
         glm::vec3 angular_momentum = glm::vec3(0.0);
@@ -195,11 +200,18 @@ class PhysicsWorld
     private:
         std::vector<PhysicsBody> bodies;
 
-        CollisionResult check_sphere_plane_collision(PhysicsShape* const sphere, PhysicsShape* const plane);
+        static CollisionResult check_sphere_plane_collision(PhysicsShape* const sphere, Transform* at, PhysicsShape* const plane, Transform* bt);
         CollisionResult check_collision(PhysicsBody& a, PhysicsBody& b);
 
         // Array of func pointers for collision tests
-
+        typedef CollisionResult (*CollisionFunc)(PhysicsShape* const, Transform*, PhysicsShape* const, Transform*);
+        CollisionFunc collision_funcs[4][4] = 
+        {
+            {nullptr, nullptr, nullptr, nullptr},
+            {nullptr, nullptr/*sphere sphere*/, check_sphere_plane_collision, nullptr /*sphere box*/},
+            {nullptr, nullptr /*plane sphere*/, nullptr/*plane plane*/, nullptr /*plane box*/},
+            {nullptr, nullptr /*box sphere*/, nullptr /*box plane*/, nullptr /*box box*/}
+        };
 
     public:
         PhysicsWorld();
