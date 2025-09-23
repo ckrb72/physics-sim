@@ -84,9 +84,9 @@ CollisionResult PhysicsWorld::check_sphere_plane_collision(const PhysicsShape* c
     
     if (std::abs(norm_projection) < s->r)
     {
-        return CollisionResult{
+        return CollisionResult {
             .colliding = true,
-            .norm = glm::vec3(0.0)
+            .norm = plane_norm,
         };
     } 
 
@@ -138,7 +138,7 @@ void PhysicsWorld::update(double delta)
             CollisionResult result = check_collision(&bodies[i], &bodies[j]);
             if (result.colliding) 
             {
-                std::cout << "Two objects colliding" << std::endl;
+                bodies[i].linear_momentum = -bodies[i].linear_momentum;
             }
 
         }

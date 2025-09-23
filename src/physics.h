@@ -193,6 +193,7 @@ struct CollisionResult
 {
     bool colliding = false;
     glm::vec3 norm = glm::vec3(0.0);
+    double depth = 0.0;
 };
 
 class PhysicsWorld
