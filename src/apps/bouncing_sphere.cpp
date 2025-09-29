@@ -16,8 +16,8 @@
 #include <imgui/imgui_impl_glfw.h>
 #include <imgui/imgui_impl_opengl3.h>
 
-#include "render.h"
-#include "physics.h"
+#include "../render/render.h"
+#include "../physics/physics.h"
 #include "util.h"
 
 const int MAX_AABB = 10;

@@ -1,5 +1,5 @@
 #include "physics.h"
-#include "util.h"
+#include "../util.h"
 
 PhysicsBody::PhysicsBody(std::shared_ptr<PhysicsShape> shape, double mass, PhysicsLayer layer)
 :shape(shape), mass(mass), transform(glm::vec3(0.0), glm::quat(1.0, 0.0, 0.0, 0.0)), layer(layer)
