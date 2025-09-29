@@ -1,5 +1,5 @@
 #include "physics.h"
-#include "../util.h"
+#include <util/util.h>
 
     /*
     const double mass = 10.0;

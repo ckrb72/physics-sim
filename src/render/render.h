@@ -1,16 +1,20 @@
 #pragma once
 #include <iostream>
 #include <vector>
-#include <unordered_map>
 #include <string>
 
-#include <queue>
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/quaternion.hpp>
 
+#include <glad/glad.h>
+#include <GLFW/glfw3.h>
+
+#include <imgui/imgui.h>
+#include <imgui/imgui_impl_glfw.h>
+#include <imgui/imgui_impl_opengl3.h>
 
 /*
     Should each geometry object hold it's own transform / model matrix or should that be held separately and then tell it to draw it at a given transform?

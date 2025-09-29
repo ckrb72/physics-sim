@@ -1,24 +1,11 @@
 #include <iostream>
-#include <glad/glad.h>
-#include <GLFW/glfw3.h>
 #include <fstream>
 #include <string>
 #include <queue>
 
-#define GLM_ENABLE_EXPERIMENTAL
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
-#include <glm/gtx/quaternion.hpp>
-
-
-#include <imgui/imgui.h>
-#include <imgui/imgui_impl_glfw.h>
-#include <imgui/imgui_impl_opengl3.h>
-
-#include "../render/render.h"
-#include "../physics/physics.h"
-#include "util.h"
+#include <render/render.h>
+#include <physics/physics.h>
+#include <util/util.h>
 
 const int MAX_AABB = 10;
 const int AABB_VERT_COUNT = 8;
@@ -30,7 +17,6 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
     cam_radius -= 0.2 * yoffset;
 }
 
-bool load_shader(const std::string& vertex_path, const std::string& fragment_path, unsigned int* program_ptr);
 
 void glfw_error_fun(int error, const char* err_desc)
 {
@@ -110,7 +96,6 @@ int main()
     glEnable(GL_DEPTH_TEST);
     double previous_time = glfwGetTime();
     double elapsed_time = 0.0;
-    float angle = 0.0f;
 
     // Camera stuff
     double previous_xpos, previous_ypos;
