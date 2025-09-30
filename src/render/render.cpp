@@ -1,6 +1,60 @@
 #include "render.h"
-#include <glad/glad.h>
 #include <fstream>
+
+static void glfw_error_fun(int error, const char* err_desc)
+{
+    std::cout << err_desc << std::endl;
+}
+
+GLFWwindow* init_window(uint32_t width, uint32_t height, const char* title)
+{
+    glfwInit();
+    glfwSetErrorCallback(glfw_error_fun);
+
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
+    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    GLFWwindow* window = glfwCreateWindow(width, height, title, nullptr, nullptr);
+
+    if(!window)
+    {
+        std::cerr << "Failed to create window" << std::endl;
+        glfwTerminate();
+        exit(EXIT_FAILURE);
+    }
+
+    glfwMakeContextCurrent(window);
+
+    if(!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
+    {
+        std::cerr << "Failed to load proc addresses" << std::endl;
+        glfwDestroyWindow(window);
+        glfwTerminate();
+        exit(EXIT_FAILURE);
+    }
+
+    glClearColor(0.3, 0.3, 0.3, 1.0);
+
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO();
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+
+    ImGui_ImplGlfw_InitForOpenGL(window, true);
+    ImGui_ImplOpenGL3_Init();
+
+    return window;
+}
+
+void deinit_window(GLFWwindow* window)
+{
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
+    ImGui::DestroyContext();
+    glfwDestroyWindow(window);
+    glfwTerminate();
+}
 
 static glm::vec3 slerp(const glm::vec3& a, const glm::vec3& b, double t)
 {

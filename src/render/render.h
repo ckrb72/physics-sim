@@ -20,6 +20,9 @@
     Should each geometry object hold it's own transform / model matrix or should that be held separately and then tell it to draw it at a given transform?
 */
 
+GLFWwindow* init_window(uint32_t width, uint32_t height, const char* title);
+void deinit_window(GLFWwindow* window);
+
 std::string read_file(const std::string& path);
 bool load_shader(const std::string& vertex_path, const std::string& fragment_path, unsigned int* program_ptr);
 
