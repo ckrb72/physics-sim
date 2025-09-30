@@ -33,7 +33,7 @@ class PhysicsShape
         ShapeType type = ShapeType::SHAPE;
 
     public:
-        virtual glm::mat3 get_body_mat() = 0;
+        virtual glm::mat3 get_body_mat(double mass) = 0;
         virtual AABBox get_aabb() = 0;
         //virtual std::vector<uint8_t> get_data() = 0;
         inline ShapeType get_type() const { return type; }
@@ -48,7 +48,7 @@ class BoxShape : public PhysicsShape
         glm::vec3 half_extent;
 
         BoxShape(glm::vec3 half_extent);
-        glm::mat3 get_body_mat() override;
+        glm::mat3 get_body_mat(double mass) override;
         AABBox get_aabb() override;
 };
 
@@ -59,7 +59,7 @@ class SphereShape : public PhysicsShape
         double r;
 
         SphereShape(double radius);
-        glm::mat3 get_body_mat() override;
+        glm::mat3 get_body_mat(double mass) override;
         AABBox get_aabb() override;
 };
 
@@ -70,7 +70,7 @@ class PlaneShape : public PhysicsShape
         glm::vec3 extent;
 
         PlaneShape(const glm::vec3& extent);
-        glm::mat3 get_body_mat() override;
+        glm::mat3 get_body_mat(double mass) override;
         AABBox get_aabb() override;
 };
 

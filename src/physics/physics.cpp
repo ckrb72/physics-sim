@@ -31,7 +31,7 @@ BoxShape::BoxShape(glm::vec3 half_extent)
 }
 
 
-glm::mat3 BoxShape::get_body_mat()
+glm::mat3 BoxShape::get_body_mat(double mass)
 {
     glm::vec3 dimensions;
     dimensions.x = half_extent.x * 2.0;
@@ -39,9 +39,9 @@ glm::mat3 BoxShape::get_body_mat()
     dimensions.z = half_extent.z * 2.0;
 
     return {
-        {1.0 / 12.0 * ( (dimensions[1] * dimensions[1]) + (dimensions[2] * dimensions[2]) ), 0.0, 0.0},
-        {0.0, 1.0 / 12.0 * ( (dimensions[0] * dimensions[0]) + (dimensions[2] * dimensions[2]) ), 0.0},
-        {0.0, 0.0, 1.0 / 12.0 * ( (dimensions[0] * dimensions[0]) + (dimensions[1] * dimensions[1]) )}
+        {mass / 12.0 * ( (dimensions[1] * dimensions[1]) + (dimensions[2] * dimensions[2]) ), 0.0, 0.0},
+        {0.0, mass / 12.0 * ( (dimensions[0] * dimensions[0]) + (dimensions[2] * dimensions[2]) ), 0.0},
+        {0.0, 0.0, mass / 12.0 * ( (dimensions[0] * dimensions[0]) + (dimensions[1] * dimensions[1]) )}
     };
 }
 
@@ -58,10 +58,14 @@ SphereShape::SphereShape(double radius)
 }
 
 
-glm::mat3 SphereShape::get_body_mat()
+glm::mat3 SphereShape::get_body_mat(double mass)
 {
-    NOT_IMPLEMENTED();
-    return glm::mat4(1.0f);
+    double inertia_scale = (2.0 / 5.0) * mass * r * r;
+    return glm::mat3{
+        {inertia_scale, 0.0, 0.0},
+        {0.0, inertia_scale, 0.0},
+        {0.0, 0.0, inertia_scale}
+    };
 }
 
 AABBox SphereShape::get_aabb()
@@ -76,8 +80,9 @@ PlaneShape::PlaneShape(const glm::vec3& extent)
     this->type = ShapeType::PLANE;
 }
 
-glm::mat3 PlaneShape::get_body_mat()
+glm::mat3 PlaneShape::get_body_mat(double mass)
 {
+    NOT_IMPLEMENTED();
     glm::vec3 dimensions;
     dimensions.x = extent.x * 2.0;
     dimensions.y = extent.y * 2.0;

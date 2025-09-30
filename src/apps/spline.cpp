@@ -29,6 +29,8 @@ int main()
         exit(EXIT_FAILURE);
     }
 
+    glfwSwapInterval(0);
+
     glm::mat4 projection = glm::perspective(glm::radians(90.0f), (float)WIN_WIDTH / (float)WIN_HEIGHT, 0.1f, 50.0f);
     glUseProgram(shader);
     glUniformMatrix4fv(glGetUniformLocation(shader, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
@@ -39,7 +41,8 @@ int main()
         {-3.0f, 0.0f, 0.0f},
         {0.0f, 3.0f, 0.0f},
         {3.0f, 0.0f, 0.0f},
-        {0.0f, -7.0f, 1.0f}
+        {0.0f, -7.0f, 1.0f},
+        {0.0f, 0.0f, -3.0f}
     };
 
     std::vector<glm::vec3> interpolated_points = generate_spline(points, 20);

@@ -4,26 +4,14 @@
 PhysicsBody::PhysicsBody(std::shared_ptr<PhysicsShape> shape, double mass, PhysicsLayer layer)
 :shape(shape), mass(mass), transform(glm::vec3(0.0), glm::quat(1.0, 0.0, 0.0, 0.0)), layer(layer)
 {
-    Ibody = shape->get_body_mat();
-
-    // Shape's body matrix isn't scaled by mass so need to do that here
-    Ibody[0][0] *= mass;
-    Ibody[1][1] *= mass;
-    Ibody[2][2] *= mass;
-
+    Ibody = shape->get_body_mat(mass);
     IbodyInv = glm::inverse(Ibody);
 }
 
 PhysicsBody::PhysicsBody(std::shared_ptr<PhysicsShape> shape, const glm::vec3& position, const glm::quat& orientation, double mass, PhysicsLayer layer)
 :shape(shape), transform(position, orientation), mass(mass), layer(layer)
 {
-    Ibody = shape->get_body_mat();
-
-    // Shape's body matrix isn't scaled by mass so need to do that here
-    Ibody[0][0] *= mass;
-    Ibody[1][1] *= mass;
-    Ibody[2][2] *= mass;
-
+    Ibody = shape->get_body_mat(mass);
     IbodyInv = glm::inverse(Ibody);
 }
 
