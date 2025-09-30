@@ -36,8 +36,10 @@ int main()
     glLineWidth(20.0);
     std::vector<glm::vec3> points = 
     {
-        {0.0f, 0.0f, 0.0f},
-        {4.0f, 3.0f, 0.0f}
+        {-3.0f, 0.0f, 0.0f},
+        {0.0f, 3.0f, 0.0f},
+        {3.0f, 0.0f, 0.0f},
+        {0.0f, -7.0f, 1.0f}
     };
 
     std::vector<glm::vec3> interpolated_points = generate_spline(points, 20);
@@ -99,9 +101,13 @@ std::vector<glm::vec3> generate_spline(const std::vector<glm::vec3>& points, uin
 {
     std::vector<glm::vec3> spline_points;
 
+    // Can't have 0 subdivisions
+    if (subdivisions == 0) subdivisions = 1;
 
-    float tension = 0.5f;
 
+    float tension = 1.0f;
+
+    // TODO: Fix this...
     glm::mat4 spline_mat = 
     {
         0.0f, 1.0f, 0.0f, 0.0f,
@@ -119,6 +125,7 @@ std::vector<glm::vec3> generate_spline(const std::vector<glm::vec3>& points, uin
         glm::vec3 end = points[i + 1];
         glm::vec3 next = i == points.size() - 2 ? points[i + 1] : points[i + 2];
 
+        // TODO: Fix this...
         glm::mat4x3 point_mat = 
         {
             prev,
@@ -129,14 +136,14 @@ std::vector<glm::vec3> generate_spline(const std::vector<glm::vec3>& points, uin
 
         for (int sub = 0; sub <= subdivisions; sub++)
         {
-            float t = (float)sub / subdivisions;
+            float t = (float)sub / (float)subdivisions;
             float t_sqr = t * t;
-            float t_cube = t_sqr * t;
+            float t_cube = t * t * t;
             
-            glm::vec3 point = (-0.5f * t_cube + t_sqr - 0.5f * t) * prev + 
-                            (1.0f + 0.5f * t_sqr * (1.0f - 6.0f) * 0.5f * t_cube * (4.0f - 1.0f)) * start +
-                            (0.5f * t_cube * (1.0f - 4.0f) + 0.5f * t - (1.0f - 3.0f) * t_sqr) * end +
-                            (-0.5f * t_sqr + 0.5f * t_cube) * next;
+            glm::vec3 point = (-0.5f * tension * t_cube + tension * t_sqr - 0.5f * tension * t) * prev +
+                            (1.0f + 0.5f * t_sqr * (tension - 6.0f) + 0.5f * t_cube * (4.0f - tension)) * start +
+                            (0.5f * t_cube * (tension - 4.0f) + 0.5f * tension * t - (tension - 3.0f) * t_sqr) * end +
+                            (-0.5f * tension * t_sqr + 0.5f * tension * t_cube) * next;
             spline_points.push_back(point);
         }   
     }
