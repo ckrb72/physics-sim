@@ -40,6 +40,10 @@ class Geometry
 
 class GeometryFactory
 {
+    private:
+        static unsigned int mesh_shader;
+        static unsigned int curve_shader;
+        
     public:
         static const std::shared_ptr<Geometry> load(const std::vector<Vertex>& vertices, const std::vector<glm::uvec3>& indices);
         static const std::shared_ptr<Geometry> load_sphere(float radius, uint32_t subdivisions);
