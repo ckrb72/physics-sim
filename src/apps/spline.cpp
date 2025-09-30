@@ -1,6 +1,7 @@
 #include <iostream>
 #include <render/render.h>
 #include <physics/physics.h>
+#include <memory>
 
 double cam_radius = 5.0;
 const int WIN_WIDTH = 1920;
@@ -15,11 +16,25 @@ int main()
 {
 
     GLFWwindow* window = init_window(WIN_WIDTH, WIN_HEIGHT, "Splines");
-
     glfwSetScrollCallback(window, scroll_callback);
 
     glClearColor(0.3, 0.3, 0.3, 1.0);
     glEnable(GL_DEPTH_TEST);
+
+    unsigned int shader;
+    if (!load_shader("../shader/line.vert", "../shader/line.frag", &shader))
+    {
+        std::cerr << "Failed to load shader" << std::endl;
+        exit(EXIT_FAILURE);
+    }
+
+    std::vector<glm::vec3> points = 
+    {
+        {0.0, 0.0, 0.0},
+        {1.0, 1.0, 0.0}
+    };
+
+    std::shared_ptr<Geometry> curve = GeometryFactory::load_curve(points);
     
     // Delta time stuff
     double previous_time = glfwGetTime();
@@ -37,6 +52,9 @@ int main()
         previous_time = current_time;
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        glUseProgram(shader);
+        curve->draw(shader, glm::mat4(1.0));
 
         glfwSwapBuffers(window);
     }

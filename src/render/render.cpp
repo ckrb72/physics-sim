@@ -244,6 +244,11 @@ const std::shared_ptr<Geometry> GeometryFactory::load_plane(float width, float h
     return load(vertices, indices);
 }
 
+const std::shared_ptr<Geometry> GeometryFactory::load_curve(const std::vector<glm::vec3>& points)
+{
+    return std::make_shared<Curve>(points);
+}
+
 Mesh::Mesh(const std::vector<Vertex>& vertices, const std::vector<glm::uvec3>& indices)
 {
     glGenVertexArrays(1, &vao);
@@ -286,6 +291,38 @@ void Mesh::draw(unsigned int shader, const glm::mat4& model) const
 
     glBindVertexArray(vao);
     glDrawElements(GL_TRIANGLES, indices.size() * 3, GL_UNSIGNED_INT, nullptr);
+}
+
+Curve::Curve(const std::vector<glm::vec3>& points)
+{
+    glGenVertexArrays(1, &vao);
+    glGenBuffers(1, &vbo);
+
+    glBindVertexArray(vao);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferData(GL_ARRAY_BUFFER, points.size() * sizeof(glm::vec3), points.data(), GL_STATIC_DRAW);
+
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+
+    this->points = points;
+}
+
+Curve::~Curve()
+{
+    glBindVertexArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glDeleteBuffers(1, &vbo);
+    glDeleteVertexArrays(1, &vao);
+}
+
+void Curve::draw(unsigned int shader, const glm::mat4& model) const
+{
+    glUseProgram(shader);
+    glUniformMatrix4fv(glGetUniformLocation(shader, "model"), 1, GL_FALSE, glm::value_ptr(model));
+
+    glBindVertexArray(vao);
+    glDrawArrays(GL_LINE_STRIP, 0, points.size());
 }
 
 std::string read_file(const std::string& path)

@@ -45,6 +45,23 @@ class GeometryFactory
         static const std::shared_ptr<Geometry> load_sphere(float radius, uint32_t subdivisions);
         static const std::shared_ptr<Geometry> load_rect(float width, float height, float depth);
         static const std::shared_ptr<Geometry> load_plane(float width, float height);
+        static const std::shared_ptr<Geometry> load_curve(const std::vector<glm::vec3>& points);
+};
+
+class Curve : public Geometry
+{
+    private:
+        std::vector<glm::vec3> points;
+        unsigned int vao, vbo;
+    public:
+        Curve(const std::vector<glm::vec3>& points);
+        ~Curve();
+        Curve(const Curve&) = delete;
+        Curve& operator=(const Curve&) = delete;
+        Curve(Curve&&) = delete;
+        Curve& operator=(const Curve&&) = delete;
+
+        void draw(unsigned int shader, const glm::mat4& model) const override;
 };
 
 class Mesh : public Geometry
