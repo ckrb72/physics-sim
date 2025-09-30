@@ -28,10 +28,14 @@ int main()
         exit(EXIT_FAILURE);
     }
 
+    glm::mat4 projection = glm::perspective(glm::radians(90.0f), (float)WIN_WIDTH / (float)WIN_HEIGHT, 0.1f, 10.0f);
+    glUniformMatrix4fv(glGetUniformLocation(shader, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
+
+    glLineWidth(5.0);
     std::vector<glm::vec3> points = 
     {
-        {0.0, 0.0, 0.0},
-        {1.0, 1.0, 0.0}
+        {0.0, 0.0, -1.0},
+        {10.0, 10.0, -1.0}
     };
 
     std::shared_ptr<Geometry> curve = GeometryFactory::load_curve(points);
