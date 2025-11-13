@@ -16,14 +16,15 @@ int main()
     GLFWwindow* window = init_window(WIN_WIDTH, WIN_HEIGHT, "Constraints");
 
     glClearColor(0.3, 0.3, 0.3, 1.0);
-    glEnable(GL_DEPTH_TEST);
 
     PhysicsWorld world;
-    int32_t box_body = world.create_body(std::make_shared<BoxShape>(glm::vec3(0.5)), 10.0, PhysicsLayer::DYNAMIC);
+    int32_t box_body = world.create_body(std::make_shared<BoxShape>(glm::vec3(0.125, 2.0, 0.125)), 10.0, PhysicsLayer::DYNAMIC);
+    int32_t weight_body = world.create_body(std::make_shared<BoxShape>(glm::vec3(0.5)), glm::vec3(0.0, -2.5, 0.0), glm::angleAxis(0.0f, glm::vec3(1.0, 0.0, 0.0)), 100.0, PhysicsLayer::DYNAMIC);
 
-    std::shared_ptr<Geometry> box_mesh = GeometryFactory::load_rect(1.0f, 1.0f, 1.0f);
-
-    glfwSwapInterval(0);
+    std::shared_ptr<Geometry> box_mesh = GeometryFactory::load_rect(0.25f, 4.0f, 0.25f);
+    std::shared_ptr<Geometry> weight_mesh = GeometryFactory::load_rect(1.0f, 1.0f, 1.0f);
+    
+    glfwSetScrollCallback(window, scroll_callback);
 
     unsigned int shader;
     if (!load_shader("../shader/default.vert", "../shader/default.frag", &shader))
@@ -73,7 +74,7 @@ int main()
         glm::mat4 view = glm::lookAt(glm::vec3(cam_radius * sin(-theta_radian) * cos(phi_radian), cam_radius * sin(phi_radian), cam_radius * cos(-theta_radian) * cos(phi_radian)), glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, 1.0, 0.0));
 
 
-        world.update(delta);
+        //world.update(delta);
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -81,6 +82,7 @@ int main()
         glUniformMatrix4fv(glGetUniformLocation(shader, "view"), 1, GL_FALSE, glm::value_ptr(view));
 
         box_mesh->draw(shader, world.get_world_matrix(box_body));
+        weight_mesh->draw(shader, world.get_world_matrix(weight_body));
 
         glfwSwapBuffers(window);
     }

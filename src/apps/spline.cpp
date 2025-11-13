@@ -29,8 +29,6 @@ int main()
         exit(EXIT_FAILURE);
     }
 
-    glfwSwapInterval(0);
-
     glm::mat4 projection = glm::perspective(glm::radians(90.0f), (float)WIN_WIDTH / (float)WIN_HEIGHT, 0.1f, 50.0f);
     glUseProgram(shader);
     glUniformMatrix4fv(glGetUniformLocation(shader, "projection"), 1, GL_FALSE, glm::value_ptr(projection));

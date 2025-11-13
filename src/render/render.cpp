@@ -25,6 +25,7 @@ GLFWwindow* init_window(uint32_t width, uint32_t height, const char* title)
     }
 
     glfwMakeContextCurrent(window);
+    glfwSwapInterval(0);
 
     if(!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
     {
@@ -34,7 +35,7 @@ GLFWwindow* init_window(uint32_t width, uint32_t height, const char* title)
         exit(EXIT_FAILURE);
     }
 
-    glClearColor(0.3, 0.3, 0.3, 1.0);
+    glEnable(GL_DEPTH_TEST);
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
