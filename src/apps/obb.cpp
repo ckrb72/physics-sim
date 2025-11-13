@@ -21,7 +21,7 @@ int main()
 
     std::shared_ptr<Geometry> sphere = GeometryFactory::load_rect(1.0f, 1.0f, 1.0f);
     PhysicsWorld world;
-    int32_t obb = world.create_body(std::make_shared<OBBShape>(glm::vec3(1.0f, 1.0f, 1.0f)), 100.0f, PhysicsLayer::STATIC);
+    int32_t obb = world.create_body(std::make_shared<OBBShape>(glm::vec3(1.0f, 1.0f, 1.0f)), 100.0f, PhysicsLayer::DYNAMIC);
 
     unsigned int program;
     if(!load_shader("../shader/default.vert", "../shader/default.frag", &program))

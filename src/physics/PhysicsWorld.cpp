@@ -176,7 +176,7 @@ void PhysicsWorld::update(double delta)
         {
  
             // Gravity = acceleration (-9.8) * mass
-            glm::vec3 gravity = glm::vec3(0.0, -9.8, 0.0);
+            glm::vec3 gravity = grav_acceleration;
             gravity *= body.mass;
             body.add_force(gravity);
 
@@ -185,6 +185,11 @@ void PhysicsWorld::update(double delta)
             body.step(delta); 
         }
     }
+}
+
+void PhysicsWorld::set_gravity(const glm::vec3& grav)
+{
+    this->grav_acceleration = grav;
 }
 
 

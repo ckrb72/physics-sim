@@ -213,6 +213,7 @@ class PhysicsWorld
 {
     private:
         std::vector<PhysicsBody> bodies;
+        glm::vec3 grav_acceleration = glm::vec3(0.0f);
 
         static CollisionResult check_sphere_sphere_collision(const PhysicsShape* const a, const Transform* const at, const PhysicsShape* const b, const Transform* const bt);
         static CollisionResult check_sphere_plane_collision(const PhysicsShape* const sphere, const Transform* sphere_transform, const PhysicsShape* const plane, const Transform* const plane_transform);
@@ -251,6 +252,8 @@ class PhysicsWorld
         void set_linear_velocity(int32_t id, const glm::vec3& v);
         void set_angular_velocity(int32_t id, const glm::vec3& omega);
         glm::mat4 get_world_matrix(int32_t id);
+
+        void set_gravity(const glm::vec3& grav);
 
         BodyInfo get_info(int32_t id) const;
 

@@ -76,6 +76,7 @@ int main()
     double theta = 0.0, phi = 0.0;
 
     world.set_linear_velocity(sphere_body, glm::vec3(0.0f, 9.8f, 0.0f));
+    world.set_gravity(glm::vec3(0.0f, -9.8f, 0.0f));
 
 
     while(!glfwWindowShouldClose(window))
