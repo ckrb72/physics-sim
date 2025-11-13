@@ -120,7 +120,31 @@ CollisionResult PhysicsWorld::check_box_box_collision(const PhysicsShape* const 
     std::cout << "Box Box" << std::endl;
     return {};
 }
-        
+
+CollisionResult PhysicsWorld::check_sphere_obb_collision(const PhysicsShape* const sphere, const Transform* const sphere_transform, const PhysicsShape* const obb, const Transform* const obb_transform)
+{
+    NOT_IMPLEMENTED();
+    return {};
+}
+
+CollisionResult PhysicsWorld::check_plane_obb_collision(const PhysicsShape* const plane, const Transform* const plane_transform, const PhysicsShape* const obb, const Transform* const obb_transform)
+{
+    NOT_IMPLEMENTED();
+    return {};
+}
+
+CollisionResult PhysicsWorld::check_box_obb_collision(const PhysicsShape* const box, const Transform* const box_transform, const PhysicsShape* const obb, const Transform* const obb_transform)
+{
+    NOT_IMPLEMENTED();
+    return {};
+}
+
+CollisionResult PhysicsWorld::check_obb_obb_collision(const PhysicsShape* const a, const Transform* const a_transform, const PhysicsShape* const b, const Transform* const b_transform)
+{
+    NOT_IMPLEMENTED();
+    return {};
+}
+       
 
 // TODO: Make it so update runs multiple steps if delta > 1 / 60
 void PhysicsWorld::update(double delta)

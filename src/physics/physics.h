@@ -15,12 +15,15 @@ struct AABBox
     glm::vec3 position;
 };
 
+#define SHAPE_COUNT 5
+
 enum ShapeType
 {
     SHAPE,
     SPHERE,
     PLANE,
-    BOX
+    BOX,
+    OBB
 };
 
 // Change this up completely...
@@ -70,6 +73,16 @@ class PlaneShape : public PhysicsShape
         glm::vec3 extent;
 
         PlaneShape(const glm::vec3& extent);
+        glm::mat3 get_body_mat(double mass) override;
+        AABBox get_aabb() override;
+};
+
+class OBBShape : public PhysicsShape
+{
+    public:
+        glm::vec3 half_extent;
+
+        OBBShape(const glm::vec3& half_extent);
         glm::mat3 get_body_mat(double mass) override;
         AABBox get_aabb() override;
 };
@@ -210,16 +223,22 @@ class PhysicsWorld
         
         static CollisionResult check_box_box_collision(const PhysicsShape* const a, const Transform* const a_transform, const PhysicsShape* const b, const Transform* const b_transform);
         
+        static CollisionResult check_sphere_obb_collision(const PhysicsShape* const sphere, const Transform* const sphere_transform, const PhysicsShape* const obb, const Transform* const obb_transform);
+        static CollisionResult check_plane_obb_collision(const PhysicsShape* const plane, const Transform* const plane_transform, const PhysicsShape* const obb, const Transform* const obb_transform);
+        static CollisionResult check_box_obb_collision(const PhysicsShape* const box, const Transform* const box_transform, const PhysicsShape* const obb, const Transform* const obb_transform);
+        static CollisionResult check_obb_obb_collision(const PhysicsShape* const a, const Transform* const a_transform, const PhysicsShape* const b, const Transform* const b_transform);
+
         CollisionResult check_collision(PhysicsBody* a, PhysicsBody* b);
 
         // Array of func pointers for collision tests
         typedef CollisionResult (*CollisionFunc)(const PhysicsShape* const, const Transform* const, const PhysicsShape* const, const Transform* const);
-        CollisionFunc collision_funcs[4][4] = 
+        CollisionFunc collision_funcs[SHAPE_COUNT][SHAPE_COUNT] = 
         {
-            {nullptr, nullptr, nullptr, nullptr},
-            {nullptr, check_sphere_sphere_collision, check_sphere_plane_collision, check_sphere_box_collision},
-            {nullptr, nullptr /*plane sphere*/, check_plane_plane_collision, check_plane_box_collision},
-            {nullptr, nullptr /*box sphere*/, nullptr /*box plane*/, check_box_box_collision}
+            {nullptr, nullptr, nullptr, nullptr, nullptr},
+            {nullptr, check_sphere_sphere_collision, check_sphere_plane_collision, check_sphere_box_collision, check_sphere_obb_collision},
+            {nullptr, nullptr /*plane sphere*/, check_plane_plane_collision, check_plane_box_collision, check_plane_obb_collision},
+            {nullptr, nullptr /*box sphere*/, nullptr /*box plane*/, check_box_box_collision, check_box_obb_collision},
+            {nullptr, nullptr, nullptr, check_obb_obb_collision}
         };
 
     public:

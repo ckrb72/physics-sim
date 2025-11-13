@@ -28,3 +28,7 @@ target_link_libraries(spline ${OPENGL_LIBRARIES} glfw imgui)
 add_executable(constraints "${SOURCE_DIR}/apps/constraints.cpp" ${SRC_PHYSICS_FILES} ${SRC_RENDER_FILES} ${SRC_RENDER_C_FILES} ${SRC_UTIL_FILES})
 target_include_directories(constraints PUBLIC "${VENDOR_DIR}/glad/include" "${VENDOR_DIR}/glm" "${SOURCE_DIR}")
 target_link_libraries(constraints ${OPENGL_LIBRARIES} glfw imgui)
+
+add_executable(obb "${SOURCE_DIR}/apps/obb.cpp" ${SRC_PHYSICS_FILES} ${SRC_RENDER_FILES} ${SRC_RENDER_C_FILES} ${SRC_UTIL_FILES})
+target_include_directories(obb PUBLIC "${VENDOR_DIR}/glad/include" "${VENDOR_DIR}/glm" "${SOURCE_DIR}")
+target_link_libraries(obb ${OPENGL_LIBRARIES} glfw imgui)
