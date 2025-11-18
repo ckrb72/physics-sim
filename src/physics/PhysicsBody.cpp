@@ -57,6 +57,13 @@ void PhysicsBody::set_linear_velocity(const glm::vec3& v)
     linear_momentum.z = v.z * mass;
 }
 
+void PhysicsBody::set_angular_velocity(const glm::vec3& omega)
+{
+    glm::mat3 rotation = glm::toMat3(glm::normalize(transform.orientation));
+    glm::mat3 inertia_tensor = rotation * Ibody * glm::transpose(rotation);
+    angular_momentum = inertia_tensor * omega;
+}
+
 void PhysicsBody::set_position(const glm::vec3& pos)
 {
     transform.position = pos;

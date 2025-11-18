@@ -34,6 +34,12 @@ void PhysicsWorld::set_linear_velocity(int32_t id, const glm::vec3& v)
     bodies[id].set_linear_velocity(v);
 }
 
+void PhysicsWorld::set_angular_velocity(int32_t id, const glm::vec3& omega)
+{
+    if (id < 0 || id > bodies.size() - 1) return;
+    bodies[id].set_angular_velocity(omega);
+}
+
 BodyInfo PhysicsWorld::get_info(int32_t id) const
 {
     if (id < 0 || id > bodies.size()) return {};

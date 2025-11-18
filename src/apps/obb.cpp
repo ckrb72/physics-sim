@@ -24,6 +24,7 @@ int main()
     PhysicsWorld world;
     int32_t box_a_body = world.create_body(std::make_shared<OBBShape>(glm::vec3(1.0f, 1.0f, 1.0f)), glm::vec3(-5.0f, 0.0f, 0.0f), glm::angleAxis(glm::radians(45.0f), glm::vec3(0.0f, 0.0f, 1.0f)), 100.0f, PhysicsLayer::DYNAMIC);
     world.set_linear_velocity(box_a_body, glm::vec3(1.0f, 0.0f, 0.0f));
+    world.set_angular_velocity(box_a_body, glm::vec3(0.0f, 0.0f, 1.0f));
     int32_t box_b_body = world.create_body(std::make_shared<OBBShape>(glm::vec3(1.0f, 1.0f, 1.0f)), glm::vec3(5.0f, 0.0f, 0.0f), glm::quat(1.0f, 0.0f, 0.0f, 0.0f), 100.0f, PhysicsLayer::DYNAMIC);
     world.set_linear_velocity(box_b_body, glm::vec3(-1.0f, 0.0f, 0.0f));
 
