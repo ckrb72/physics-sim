@@ -13,18 +13,22 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 
 int main()
 {
-    GLFWwindow* window = init_window(WIN_WIDTH, WIN_HEIGHT, "Splines");
+    GLFWwindow* window = init_window(WIN_WIDTH, WIN_HEIGHT, "OBB");
     glfwSetScrollCallback(window, scroll_callback);
 
     glClearColor(0.3, 0.3, 0.3, 1.0);
     glEnable(GL_DEPTH_TEST);
 
-    std::shared_ptr<Geometry> sphere = GeometryFactory::load_rect(1.0f, 1.0f, 1.0f);
+    std::shared_ptr<Geometry> box_a = GeometryFactory::load_rect(2.0f, 2.0f, 2.0f);
+    std::shared_ptr<Geometry> box_b = GeometryFactory::load_rect(2.0f, 2.0f, 2.0f);
     PhysicsWorld world;
-    int32_t obb = world.create_body(std::make_shared<OBBShape>(glm::vec3(1.0f, 1.0f, 1.0f)), 100.0f, PhysicsLayer::DYNAMIC);
+    int32_t box_a_body = world.create_body(std::make_shared<OBBShape>(glm::vec3(1.0f, 1.0f, 1.0f)), glm::vec3(-5.0f, 0.0f, 0.0f), glm::angleAxis(glm::radians(45.0f), glm::vec3(0.0f, 0.0f, 1.0f)), 100.0f, PhysicsLayer::DYNAMIC);
+    world.set_linear_velocity(box_a_body, glm::vec3(1.0f, 0.0f, 0.0f));
+    int32_t box_b_body = world.create_body(std::make_shared<OBBShape>(glm::vec3(1.0f, 1.0f, 1.0f)), glm::vec3(5.0f, 0.0f, 0.0f), glm::quat(1.0f, 0.0f, 0.0f, 0.0f), 100.0f, PhysicsLayer::DYNAMIC);
+    world.set_linear_velocity(box_b_body, glm::vec3(-1.0f, 0.0f, 0.0f));
 
     unsigned int program;
-    if(!load_shader("../shader/default.vert", "../shader/default.frag", &program))
+    if(!load_shader("../shader/collision_view.vert", "../shader/collision_view.frag", &program))
     {
         std::cout << "Failed to load shader" << std::endl;
 
@@ -79,7 +83,10 @@ int main()
         glUniformMatrix4fv(glGetUniformLocation(program, "view"), 1, GL_FALSE, glm::value_ptr(view));
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        sphere->draw(program, world.get_world_matrix(obb));
+        
+        glUniform1f(glGetUniformLocation(program, "colliding"), (world.is_colliding(box_a_body, box_b_body)) ? 1.0f : 0.0f);
+        box_a->draw(program, world.get_world_matrix(box_a_body));
+        box_b->draw(program, world.get_world_matrix(box_b_body));
         
         glfwSwapBuffers(window);
     }

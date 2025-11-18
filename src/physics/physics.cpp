@@ -24,33 +24,6 @@
     };
     */
 
-BoxShape::BoxShape(glm::vec3 half_extent)
-:half_extent(half_extent)
-{
-    this->type = ShapeType::BOX;
-}
-
-
-glm::mat3 BoxShape::get_body_mat(double mass)
-{
-    glm::vec3 dimensions;
-    dimensions.x = half_extent.x * 2.0;
-    dimensions.y = half_extent.y * 2.0;
-    dimensions.z = half_extent.z * 2.0;
-
-    return {
-        {mass / 12.0 * ( (dimensions[1] * dimensions[1]) + (dimensions[2] * dimensions[2]) ), 0.0, 0.0},
-        {0.0, mass / 12.0 * ( (dimensions[0] * dimensions[0]) + (dimensions[2] * dimensions[2]) ), 0.0},
-        {0.0, 0.0, mass / 12.0 * ( (dimensions[0] * dimensions[0]) + (dimensions[1] * dimensions[1]) )}
-    };
-}
-
-AABBox BoxShape::get_aabb()
-{
-    NOT_IMPLEMENTED();
-    return AABBox{};
-}
-
 SphereShape::SphereShape(double radius)
 :r(radius)
 {

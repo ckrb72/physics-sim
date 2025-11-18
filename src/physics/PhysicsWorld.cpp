@@ -141,8 +141,124 @@ CollisionResult PhysicsWorld::check_box_obb_collision(const PhysicsShape* const 
 
 CollisionResult PhysicsWorld::check_obb_obb_collision(const PhysicsShape* const a, const Transform* const a_transform, const PhysicsShape* const b, const Transform* const b_transform)
 {
-    NOT_IMPLEMENTED();
-    return {};
+    const OBBShape* const a_shape = (const OBBShape* const)a;
+    const OBBShape* const b_shape = (const OBBShape* const)b;
+
+    const float EPSILON = 1e-6f;
+
+    glm::mat3 a_axis = glm::toMat3(a_transform->orientation);
+    glm::mat3 b_axis = glm::toMat3(b_transform->orientation);
+
+    glm::mat3 rotation;
+    glm::mat3 abs_rotation;
+
+    // Compute rotation which represents the rotation of b in terms of a's coordinate space
+    for (int i = 0; i < 3; i++)
+    {
+        for (int j = 0; j < 3; j++)
+        {
+            rotation[i][j] = glm::dot(a_axis[i], b_axis[j]);
+            abs_rotation[i][j] = std::abs(rotation[i][j]) + EPSILON;
+        }
+    }
+
+    // Get the translation of b from a's center and put it in terms of a's coordinate system
+    glm::vec3 translation = b_transform->position - a_transform->position;
+    translation = glm::vec3(glm::dot(translation, a_axis[0]), glm::dot(translation, a_axis[1]), glm::dot(translation, a_axis[2]));
+
+    float ra, rb;
+
+    // Test axes of a
+    for (int i = 0; i < 3; i++)
+    {
+        ra = a_shape->half_extent[i];
+        rb = b_shape->half_extent.x * abs_rotation[i][0] + b_shape->half_extent.y * abs_rotation[i][1] + b_shape->half_extent.z * abs_rotation[i][2];
+        if (std::abs(translation[i]) > ra + rb) return CollisionResult {
+            .colliding = false
+        };
+    }
+
+
+    // Test axes of b
+    for (int i = 0; i < 3; i++)
+    {
+        ra = a_shape->half_extent.x * abs_rotation[0][i] + a_shape->half_extent.y * abs_rotation[1][i] + a_shape->half_extent.z * abs_rotation[2][i];
+        rb = b_shape->half_extent[i];
+        if ( std::abs(translation.x * rotation[0][i] + translation.y * rotation[1][i] + translation.z * rotation[2][i]) > ra + rb) return CollisionResult {
+            .colliding = false
+        };
+    }
+
+
+    // Test cross axes
+
+    ra = a_shape->half_extent.y * abs_rotation[2][0] + a_shape->half_extent.z * abs_rotation[1][0];
+    rb = b_shape->half_extent.y * abs_rotation[0][2] + b_shape->half_extent.z * abs_rotation[0][1];
+    if (std::abs(translation.z * rotation[1][0] - translation.y * rotation[2][0]) > ra + rb) return CollisionResult {
+        .colliding = false
+    };
+
+    ra = a_shape->half_extent.y * abs_rotation[2][1] + a_shape->half_extent.z * abs_rotation[1][1];
+    rb = b_shape->half_extent.x * abs_rotation[0][2] + b_shape->half_extent.z * abs_rotation[0][0];
+    if (std::abs(translation.z * rotation[1][1] - translation.y * rotation[2][1]) > ra + rb) return CollisionResult {
+        .colliding = false
+    };
+
+    ra = a_shape->half_extent.y * abs_rotation[2][2] + a_shape->half_extent.z * abs_rotation[1][2];
+    rb = b_shape->half_extent.x * abs_rotation[0][1] + b_shape->half_extent.y * abs_rotation[0][0];
+    if (std::abs(translation.z * rotation[1][2] - translation.y * rotation[2][2]) > ra + rb) return CollisionResult {
+        .colliding = false
+    };
+
+    ra = a_shape->half_extent.x * abs_rotation[2][0] + a_shape->half_extent.z * abs_rotation[0][0];
+    rb = b_shape->half_extent.y * abs_rotation[1][2] + b_shape->half_extent.z * abs_rotation[1][1];
+    if (std::abs(translation.x * rotation[2][0] - translation.z * rotation[0][0]) > ra + rb) return CollisionResult {
+        .colliding = false
+    };
+
+    ra = a_shape->half_extent.x * abs_rotation[2][1] + a_shape->half_extent.z * abs_rotation[0][1];
+    rb = b_shape->half_extent.x * abs_rotation[1][2] + b_shape->half_extent.z * abs_rotation[1][0];
+    if (std::abs(translation.x * rotation[2][1] - translation.z * rotation[0][1]) > ra + rb) return CollisionResult {
+        .colliding = false
+    };
+
+    ra = a_shape->half_extent.x * abs_rotation[2][2] + a_shape->half_extent.z * abs_rotation[0][2];
+    rb = b_shape->half_extent.x * abs_rotation[1][1] + b_shape->half_extent.y * abs_rotation[1][0];
+    if (std::abs(translation.x * rotation[2][2] - translation.z * rotation[0][2]) > ra + rb) return CollisionResult {
+        .colliding = false
+    };
+
+    ra = a_shape->half_extent.x * abs_rotation[1][0] + a_shape->half_extent.y * abs_rotation[0][0];
+    rb = b_shape->half_extent.y * abs_rotation[2][2] + b_shape->half_extent.z * abs_rotation[2][1];
+    if (std::abs(translation.y * rotation[0][0] - translation.x * rotation[1][0]) > ra + rb) return CollisionResult {
+        .colliding = false
+    };
+
+    ra = a_shape->half_extent.x * abs_rotation[1][1] + a_shape->half_extent.y * abs_rotation[0][1];
+    rb = b_shape->half_extent.x * abs_rotation[2][2] + b_shape->half_extent.z * abs_rotation[2][0];
+    if (std::abs(translation.y * rotation[0][1] - translation.x * rotation[1][1]) > ra + rb) return CollisionResult {
+        .colliding = false
+    };
+
+    ra = a_shape->half_extent.x * abs_rotation[1][2] + a_shape->half_extent.y * abs_rotation[0][2];
+    rb = b_shape->half_extent.x * abs_rotation[2][1] + b_shape->half_extent.y * abs_rotation[2][0];
+    if (std::abs(translation.y * rotation[0][2] - translation.x * rotation[1][2]) > ra + rb) return CollisionResult {
+        .colliding = false
+    };
+
+    return CollisionResult {
+        .colliding = true
+    };
+}
+
+bool PhysicsWorld::is_colliding(int32_t a, int32_t b)
+{
+    if (a == b) return false;
+
+    if (a > bodies.size() - 1 || b > bodies.size() - 1) return false;
+
+    CollisionResult result = check_collision(&bodies[a], &bodies[b]);
+    return result.colliding;
 }
        
 
@@ -160,10 +276,14 @@ void PhysicsWorld::update(double delta)
             // Do collision detection here
 
             CollisionResult result = check_collision(&bodies[i], &bodies[j]);
-            if (result.colliding) 
+            if (result.colliding)
             {
-                bodies[i].linear_momentum = -bodies[i].linear_momentum;
+                // assert(false);
             }
+            // if (result.colliding) 
+            // {
+            //     bodies[i].linear_momentum = -bodies[i].linear_momentum;
+            // }
 
         }
     }

@@ -15,15 +15,13 @@ struct AABBox
     glm::vec3 position;
 };
 
-#define SHAPE_COUNT 5
-
 enum ShapeType
 {
     SHAPE,
     SPHERE,
     PLANE,
-    BOX,
-    OBB
+    OBB,
+    NUM_SHAPES
 };
 
 // Change this up completely...
@@ -44,16 +42,6 @@ class PhysicsShape
 
 //Maybe make a distinction between collision shapes and physics shapes???
 //Physics shapes would have inertia tensor while collision shape would just have collision detection stuff
-
-class BoxShape : public PhysicsShape
-{
-    public:
-        glm::vec3 half_extent;
-
-        BoxShape(glm::vec3 half_extent);
-        glm::mat3 get_body_mat(double mass) override;
-        AABBox get_aabb() override;
-};
 
 // The origin of this sphere is in "body space" so it will always be 0, 0, 0. In the physics body it is attached to the position will change
 class SphereShape : public PhysicsShape
@@ -233,12 +221,11 @@ class PhysicsWorld
 
         // Array of func pointers for collision tests
         typedef CollisionResult (*CollisionFunc)(const PhysicsShape* const, const Transform* const, const PhysicsShape* const, const Transform* const);
-        CollisionFunc collision_funcs[SHAPE_COUNT][SHAPE_COUNT] = 
+        CollisionFunc collision_funcs[ShapeType::NUM_SHAPES][ShapeType::NUM_SHAPES] = 
         {
-            {nullptr, nullptr, nullptr, nullptr, nullptr},
-            {nullptr, check_sphere_sphere_collision, check_sphere_plane_collision, check_sphere_box_collision, check_sphere_obb_collision},
-            {nullptr, nullptr /*plane sphere*/, check_plane_plane_collision, check_plane_box_collision, check_plane_obb_collision},
-            {nullptr, nullptr /*box sphere*/, nullptr /*box plane*/, check_box_box_collision, check_box_obb_collision},
+            {nullptr, nullptr, nullptr, nullptr},
+            {nullptr, check_sphere_sphere_collision, check_sphere_plane_collision, check_sphere_obb_collision},
+            {nullptr, nullptr /*plane sphere*/, check_plane_plane_collision, check_plane_obb_collision},
             {nullptr, nullptr, nullptr, check_obb_obb_collision}
         };
 
@@ -252,6 +239,8 @@ class PhysicsWorld
         void set_linear_velocity(int32_t id, const glm::vec3& v);
         void set_angular_velocity(int32_t id, const glm::vec3& omega);
         glm::mat4 get_world_matrix(int32_t id);
+
+        bool is_colliding(int32_t a, int32_t b);
 
         void set_gravity(const glm::vec3& grav);
 
