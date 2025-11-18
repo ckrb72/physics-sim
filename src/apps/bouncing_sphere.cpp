@@ -4,6 +4,7 @@
 #include <queue>
 
 #include <render/render.h>
+#include <render/engine.h>
 #include <physics/physics.h>
 #include <util/util.h>
 
@@ -67,7 +68,8 @@ int main()
     glUniformMatrix4fv(glGetUniformLocation(program, "view"), 1, GL_FALSE, glm::value_ptr(view));
 
     glEnable(GL_DEPTH_TEST);
-    double previous_time = glfwGetTime();
+    EngineTime time;
+    time.init();
     double elapsed_time = 0.0;
 
     // Camera stuff
@@ -83,12 +85,10 @@ int main()
     {
         glfwPollEvents();
 
-        double current_time = glfwGetTime();
-        double delta = current_time - previous_time;
-        previous_time = current_time;
+        time.update();
         
 
-        elapsed_time += delta;
+        elapsed_time += time.delta();
         if (elapsed_time > 0.01)
         {
             // Run simulation

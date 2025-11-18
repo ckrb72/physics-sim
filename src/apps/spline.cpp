@@ -1,5 +1,6 @@
 #include <iostream>
 #include <render/render.h>
+#include <render/engine.h>
 #include <physics/physics.h>
 #include <memory>
 
@@ -47,8 +48,8 @@ int main()
     std::shared_ptr<Geometry> curve = GeometryFactory::load_curve(interpolated_points);
     
     // Delta time stuff
-    double previous_time = glfwGetTime();
-    double elapsed_time = 0.0;
+    EngineTime time;
+    time.init();
 
     // Camera stuff
     double previous_xpos, previous_ypos;
@@ -57,9 +58,7 @@ int main()
     while(!glfwWindowShouldClose(window))
     {
         glfwPollEvents();
-        double current_time = glfwGetTime();
-        double delta = current_time - previous_time;
-        previous_time = current_time;
+        time.update();
 
         // Camera
         double current_xpos, current_ypos;

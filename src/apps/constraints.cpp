@@ -1,5 +1,6 @@
 #include <iostream>
 #include <render/render.h>
+#include <render/engine.h>
 #include <physics/physics.h>
 
 const int WIN_WIDTH = 1920;
@@ -38,7 +39,8 @@ int main()
     glUniformMatrix4fv(glGetUniformLocation(shader, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
 
 
-    double previous_time = glfwGetTime();
+    EngineTime time;
+    time.init();
 
     // Camera stuff
     double previous_xpos, previous_ypos;
@@ -48,9 +50,7 @@ int main()
     {
         glfwPollEvents();
 
-        double current_time = glfwGetTime();
-        double delta = current_time - previous_time;
-        previous_time = current_time;
+        time.update();
 
         // Camera
         double current_xpos, current_ypos;

@@ -1,6 +1,7 @@
 #include <iostream>
 #include <physics/physics.h>
 #include <render/render.h>
+#include <render/engine.h>
 
 double cam_radius = 5.0;
 const int WIN_WIDTH = 1920;
@@ -19,14 +20,22 @@ int main()
     glClearColor(0.3, 0.3, 0.3, 1.0);
     glEnable(GL_DEPTH_TEST);
 
-    std::shared_ptr<Geometry> box_a = GeometryFactory::load_rect(2.0f, 2.0f, 2.0f);
-    std::shared_ptr<Geometry> box_b = GeometryFactory::load_rect(2.0f, 2.0f, 2.0f);
     PhysicsWorld world;
+
+    std::shared_ptr<Geometry> box_shape = GeometryFactory::load_rect(2.0f, 2.0f, 2.0f);
     int32_t box_a_body = world.create_body(std::make_shared<OBBShape>(glm::vec3(1.0f, 1.0f, 1.0f)), glm::vec3(-5.0f, 0.0f, 0.0f), glm::angleAxis(glm::radians(45.0f), glm::vec3(0.0f, 0.0f, 1.0f)), 100.0f, PhysicsLayer::DYNAMIC);
     world.set_linear_velocity(box_a_body, glm::vec3(1.0f, 0.0f, 0.0f));
-    world.set_angular_velocity(box_a_body, glm::vec3(0.0f, 0.0f, 1.0f));
+    world.set_angular_velocity(box_a_body, glm::vec3(0.0f, 1.0f, 1.0f));
     int32_t box_b_body = world.create_body(std::make_shared<OBBShape>(glm::vec3(1.0f, 1.0f, 1.0f)), glm::vec3(5.0f, 0.0f, 0.0f), glm::quat(1.0f, 0.0f, 0.0f, 0.0f), 100.0f, PhysicsLayer::DYNAMIC);
     world.set_linear_velocity(box_b_body, glm::vec3(-1.0f, 0.0f, 0.0f));
+    world.set_angular_velocity(box_b_body, glm::vec3(1.0f, 0.0f, 1.0f));
+
+    // std::shared_ptr<Geometry> box_a = GeometryFactory::load_sphere(1.0f, 2);
+    // std::shared_ptr<Geometry> box_b = GeometryFactory::load_sphere(1.0f, 2);
+    // int32_t box_a_body = world.create_body(std::make_shared<SphereShape>(1.0f), glm::vec3(-5.0f, 0.0f, 0.0f), glm::quat(1.0f, 0.0f, 0.0f, 0.0f), 100.0f, PhysicsLayer::DYNAMIC);
+    // world.set_linear_velocity(box_a_body, glm::vec3(1.0f, 0.0f, 0.0f));
+    // int32_t box_b_body = world.create_body(std::make_shared<SphereShape>(1.0f), glm::vec3(5.0f, 0.0f, 0.0f), glm::quat(1.0f, 0.0f, 0.0f, 0.0f), 100.0f, PhysicsLayer::DYNAMIC);
+    // world.set_linear_velocity(box_b_body, glm::vec3(-1.0f, 0.0f, 0.0f));
 
     unsigned int program;
     if(!load_shader("../shader/collision_view.vert", "../shader/collision_view.frag", &program))
@@ -44,7 +53,8 @@ int main()
     glUniformMatrix4fv(glGetUniformLocation(program, "view"), 1, GL_FALSE, glm::value_ptr(view));
 
     // Delta time stuff
-    double previous_time = glfwGetTime();
+    EngineTime time;
+    time.init();
     double elapsed_time = 0.0;
 
     // Camera stuff
@@ -54,11 +64,9 @@ int main()
     while (!glfwWindowShouldClose(window))
     {
         glfwPollEvents();
-        double current_time = glfwGetTime();
-        double delta = current_time - previous_time;
-        previous_time = current_time;
+        time.update();
 
-        world.update(delta);
+        world.update(time.delta());
 
         // Camera
         double current_xpos, current_ypos;
@@ -86,8 +94,8 @@ int main()
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         
         glUniform1f(glGetUniformLocation(program, "colliding"), (world.is_colliding(box_a_body, box_b_body)) ? 1.0f : 0.0f);
-        box_a->draw(program, world.get_world_matrix(box_a_body));
-        box_b->draw(program, world.get_world_matrix(box_b_body));
+        box_shape->draw(program, world.get_world_matrix(box_a_body));
+        box_shape->draw(program, world.get_world_matrix(box_b_body));
         
         glfwSwapBuffers(window);
     }

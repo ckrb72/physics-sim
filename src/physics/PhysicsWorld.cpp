@@ -73,9 +73,19 @@ CollisionResult PhysicsWorld::check_collision(PhysicsBody* a, PhysicsBody* b)
 
 CollisionResult PhysicsWorld::check_sphere_sphere_collision(const PhysicsShape* const a, const Transform* const at, const PhysicsShape* const b, const Transform* const bt)
 {
-    NOT_IMPLEMENTED();
-    std::cout << "Sphere Sphere" << std::endl;
-    return {};
+    const SphereShape* const a_sphere = (const SphereShape* const)a;
+    const SphereShape* const b_sphere = (const SphereShape* const)b;
+
+    glm::vec3 position_diff = bt->position - at->position;
+
+    if ( std::abs(glm::length(position_diff)) < (a_sphere->r + b_sphere->r))
+    {
+        return CollisionResult {
+            .colliding = true,
+            .norm = position_diff
+        };
+    }
+    return CollisionResult { .colliding = false };
 }
 
 CollisionResult PhysicsWorld::check_sphere_plane_collision(const PhysicsShape* const sphere, const Transform* const sphere_transform, const PhysicsShape* const plane, const Transform* const plane_transform)
@@ -99,31 +109,9 @@ CollisionResult PhysicsWorld::check_sphere_plane_collision(const PhysicsShape* c
     return CollisionResult{.colliding = false};
 }
 
-CollisionResult PhysicsWorld::check_sphere_box_collision(const PhysicsShape* const sphere, const Transform* const sphere_transform, const PhysicsShape* const box, const Transform* const box_transform)
-{
-    NOT_IMPLEMENTED();
-    std::cout << "Sphere Box" << std::endl;
-    return {};
-}
-
 CollisionResult PhysicsWorld::check_plane_plane_collision(const PhysicsShape* const a, const Transform* const a_transform, const PhysicsShape* const b, const Transform* const b_transform)
 {
-    //NOT_IMPLEMENTED();
-    //std::cout << "Plane Plane" << std::endl;
-    return {};
-}
-
-CollisionResult PhysicsWorld::check_plane_box_collision(const PhysicsShape* const plane, const Transform* const plane_transform, const PhysicsShape* const box, const Transform* const box_transform)
-{
     NOT_IMPLEMENTED();
-    std::cout << "Plane Box" << std::endl;
-    return {};
-}
-
-CollisionResult PhysicsWorld::check_box_box_collision(const PhysicsShape* const a, const Transform* const a_transform, const PhysicsShape* const b, const Transform* const b_transform)
-{
-    NOT_IMPLEMENTED();
-    std::cout << "Box Box" << std::endl;
     return {};
 }
 
@@ -139,11 +127,6 @@ CollisionResult PhysicsWorld::check_plane_obb_collision(const PhysicsShape* cons
     return {};
 }
 
-CollisionResult PhysicsWorld::check_box_obb_collision(const PhysicsShape* const box, const Transform* const box_transform, const PhysicsShape* const obb, const Transform* const obb_transform)
-{
-    NOT_IMPLEMENTED();
-    return {};
-}
 
 CollisionResult PhysicsWorld::check_obb_obb_collision(const PhysicsShape* const a, const Transform* const a_transform, const PhysicsShape* const b, const Transform* const b_transform)
 {
