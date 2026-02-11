@@ -20,6 +20,20 @@ int32_t PhysicsWorld::create_body(std::shared_ptr<PhysicsShape> shape, const glm
     return id;
 }
 
+int32_t PhysicsWorld::create_body(std::shared_ptr<PhysicsShape> shape, const PhysicsMaterial& material, double mass, PhysicsLayer layer)
+{
+    int32_t id = bodies.size();
+    bodies.push_back(PhysicsBody(shape, material, mass, layer));
+    return id;
+}
+
+int32_t PhysicsWorld::create_body(std::shared_ptr<PhysicsShape> shape, const PhysicsMaterial& material, const glm::vec3& position, const glm::quat& orientation, double mass, PhysicsLayer layer)
+{
+    int32_t id = bodies.size();
+    bodies.push_back(PhysicsBody(shape, material, position, orientation, mass, layer));
+    return id;
+}
+
 glm::mat4 PhysicsWorld::get_world_matrix(int32_t id)
 {
     if (id < 0 || id > bodies.size() - 1) return {};
@@ -111,7 +125,7 @@ CollisionResult PhysicsWorld::check_sphere_plane_collision(const PhysicsShape* c
 
 CollisionResult PhysicsWorld::check_plane_plane_collision(const PhysicsShape* const a, const Transform* const a_transform, const PhysicsShape* const b, const Transform* const b_transform)
 {
-    NOT_IMPLEMENTED();
+    //NOT_IMPLEMENTED();
     return {};
 }
 
@@ -262,17 +276,15 @@ void PhysicsWorld::update(double delta)
         {
             if (i == j) continue;
 
-            // Do collision detection here
-
             CollisionResult result = check_collision(&bodies[i], &bodies[j]);
             if (result.colliding)
             {
                 // assert(false);
             }
-            // if (result.colliding) 
-            // {
-            //     bodies[i].linear_momentum = -bodies[i].linear_momentum;
-            // }
+            if (result.colliding) 
+            {
+                bodies[i].linear_momentum = glm::reflect(bodies[i].linear_momentum, result.norm) * bodies[i].material.restitution;
+            }
 
         }
     }

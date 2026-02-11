@@ -24,6 +24,11 @@ enum ShapeType
     NUM_SHAPES
 };
 
+struct PhysicsMaterial
+{
+    float restitution = 1.0f;
+};
+
 // Change this up completely...
 // Make these just be a tag essentially that tells what type of shape it is
 // Then have a method that gets the data for that specific shape and have the actual
@@ -147,11 +152,15 @@ class PhysicsBody
 
         friend class PhysicsWorld;
 
+        PhysicsMaterial material;
+
     public:
         PhysicsBody() = delete;
+        PhysicsBody(std::shared_ptr<PhysicsShape> shape, const PhysicsMaterial& material, double mass, PhysicsLayer layer);
+        PhysicsBody(std::shared_ptr<PhysicsShape> shape, const PhysicsMaterial& material, const glm::vec3& position, const glm::quat& orientation, double mass, PhysicsLayer layer);
         PhysicsBody(std::shared_ptr<PhysicsShape> shape, double mass, PhysicsLayer layer);
         PhysicsBody(std::shared_ptr<PhysicsShape> shape, const glm::vec3& position, const glm::quat& orientation, double mass, PhysicsLayer layer);
-
+        
         const glm::vec3& get_position() const;
         const glm::quat& get_orientation() const;
         glm::mat4 get_world_matrix() const;
@@ -233,6 +242,8 @@ class PhysicsWorld
         PhysicsWorld();
         int32_t create_body(std::shared_ptr<PhysicsShape> shape, double mass, PhysicsLayer layer);
         int32_t create_body(std::shared_ptr<PhysicsShape> shape, const glm::vec3& position, const glm::quat& orientation, double mass, PhysicsLayer layer);
+        int32_t create_body(std::shared_ptr<PhysicsShape> shape, const PhysicsMaterial& material, double mass, PhysicsLayer layer);
+        int32_t create_body(std::shared_ptr<PhysicsShape> shape, const PhysicsMaterial& material, const glm::vec3& position, const glm::quat& orientation, double mass, PhysicsLayer layer);
         void remove(int32_t id);
 
         // Body manipulation functions
@@ -284,6 +295,12 @@ struct BodyUpdate
     uint32_t rb_id;
     glm::vec3 pos;
     glm::quat orientation;
+};
+
+
+struct BoundingTreeNode
+{
+    float temp;
 };
 
 // Idea for Engine Architecture

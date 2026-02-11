@@ -1,19 +1,35 @@
 #include "physics.h"
 #include <util/util.h>
 
+PhysicsBody::PhysicsBody(std::shared_ptr<PhysicsShape> shape, const PhysicsMaterial& material, double mass, PhysicsLayer layer)
+:shape(shape), mass(mass), transform(glm::vec3(0.0), glm::quat(1.0, 0.0, 0.0, 0.0)), layer(layer), material(material)
+{
+    Ibody = shape->get_body_mat(mass);
+    IbodyInv = glm::inverse(Ibody);
+}
+
+PhysicsBody::PhysicsBody(std::shared_ptr<PhysicsShape> shape, const PhysicsMaterial& material, const glm::vec3& position, const glm::quat& orientation, double mass, PhysicsLayer layer)
+:shape(shape), transform(position, orientation), mass(mass), layer(layer), material(material)
+{
+    Ibody = shape->get_body_mat(mass);
+    IbodyInv = glm::inverse(Ibody);
+}
+
 PhysicsBody::PhysicsBody(std::shared_ptr<PhysicsShape> shape, double mass, PhysicsLayer layer)
-:shape(shape), mass(mass), transform(glm::vec3(0.0), glm::quat(1.0, 0.0, 0.0, 0.0)), layer(layer)
+:shape(shape), mass(mass), transform(glm::vec3(0.0), glm::quat(1.0, 0.0, 0.0, 0.0)), layer(layer), material({})
 {
     Ibody = shape->get_body_mat(mass);
     IbodyInv = glm::inverse(Ibody);
 }
 
 PhysicsBody::PhysicsBody(std::shared_ptr<PhysicsShape> shape, const glm::vec3& position, const glm::quat& orientation, double mass, PhysicsLayer layer)
-:shape(shape), transform(position, orientation), mass(mass), layer(layer)
+:shape(shape), transform(position, orientation), mass(mass), layer(layer), material({})
 {
     Ibody = shape->get_body_mat(mass);
     IbodyInv = glm::inverse(Ibody);
 }
+
+
 
 const glm::vec3& PhysicsBody::get_position() const
 {

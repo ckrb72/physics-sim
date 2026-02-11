@@ -30,8 +30,7 @@ int main()
     world.set_linear_velocity(box_b_body, glm::vec3(-1.0f, 0.0f, 0.0f));
     world.set_angular_velocity(box_b_body, glm::vec3(1.0f, 0.0f, 1.0f));
 
-    // std::shared_ptr<Geometry> box_a = GeometryFactory::load_sphere(1.0f, 2);
-    // std::shared_ptr<Geometry> box_b = GeometryFactory::load_sphere(1.0f, 2);
+    // std::shared_ptr<Geometry> box_shape = GeometryFactory::load_sphere(1.0f, 2);
     // int32_t box_a_body = world.create_body(std::make_shared<SphereShape>(1.0f), glm::vec3(-5.0f, 0.0f, 0.0f), glm::quat(1.0f, 0.0f, 0.0f, 0.0f), 100.0f, PhysicsLayer::DYNAMIC);
     // world.set_linear_velocity(box_a_body, glm::vec3(1.0f, 0.0f, 0.0f));
     // int32_t box_b_body = world.create_body(std::make_shared<SphereShape>(1.0f), glm::vec3(5.0f, 0.0f, 0.0f), glm::quat(1.0f, 0.0f, 0.0f, 0.0f), 100.0f, PhysicsLayer::DYNAMIC);
@@ -80,7 +79,7 @@ int main()
         if(glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
         {
             theta += xdelta;
-            phi += ydelta; 
+            phi += ydelta;
         }
 
         if (phi >= 89.0) phi = 89.0;
