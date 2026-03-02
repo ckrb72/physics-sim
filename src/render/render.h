@@ -2,6 +2,7 @@
 #include <iostream>
 #include <vector>
 #include <string>
+#include <array>
 
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/glm.hpp>
@@ -35,7 +36,7 @@ struct Vertex
 class Geometry
 {
     public:
-        virtual void draw(unsigned int shader, const glm::mat4&) const = 0;
+        virtual void draw(unsigned int shader, const std::array<float, 16>& model_mat) const = 0;
 };
 
 class GeometryFactory
@@ -65,7 +66,7 @@ class Curve : public Geometry
         Curve(Curve&&) = delete;
         Curve& operator=(const Curve&&) = delete;
 
-        void draw(unsigned int shader, const glm::mat4& model) const override;
+        void draw(unsigned int shader, const std::array<float, 16>& model_mat) const override;
 };
 
 class Mesh : public Geometry
@@ -84,7 +85,7 @@ class Mesh : public Geometry
         Mesh(Mesh&&) = delete;
         Mesh& operator=(const Mesh&&) = delete;
 
-        void draw(unsigned int shader, const glm::mat4& model) const override;
+        void draw(unsigned int shader, const std::array<float, 16>& model_mat) const override;
 };
 
 
@@ -97,7 +98,7 @@ class MeshBatch : public Geometry
 
     public:
         MeshBatch(uint32_t size);
-        void draw(unsigned int shader, const glm::mat4& model) const override;
+        void draw(unsigned int shader, const std::array<float, 16>& model) const override;
         bool push(const std::vector<Vertex>& vertices, const std::vector<unsigned int>& indices);
 };
 

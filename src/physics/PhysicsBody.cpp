@@ -2,90 +2,94 @@
 #include <util/util.h>
 
 PhysicsBody::PhysicsBody(std::shared_ptr<PhysicsShape> shape, const PhysicsMaterial& material, double mass, PhysicsLayer layer)
-:shape(shape), mass(mass), transform(glm::vec3(0.0), glm::quat(1.0, 0.0, 0.0, 0.0)), layer(layer), material(material)
+:shape(shape), mass(mass), transform(Eigen::Vector3d(0.0, 0.0, 0.0), Eigen::Quaterniond(1.0, 0.0, 0.0, 0.0)), layer(layer), material(material)
 {
     Ibody = shape->get_body_mat(mass);
-    IbodyInv = glm::inverse(Ibody);
+    IbodyInv = Ibody.inverse();
 }
 
-PhysicsBody::PhysicsBody(std::shared_ptr<PhysicsShape> shape, const PhysicsMaterial& material, const glm::vec3& position, const glm::quat& orientation, double mass, PhysicsLayer layer)
+PhysicsBody::PhysicsBody(std::shared_ptr<PhysicsShape> shape, const PhysicsMaterial& material, const Eigen::Vector3d& position, const Eigen::Quaterniond& orientation, double mass, PhysicsLayer layer)
 :shape(shape), transform(position, orientation), mass(mass), layer(layer), material(material)
 {
     Ibody = shape->get_body_mat(mass);
-    IbodyInv = glm::inverse(Ibody);
+    IbodyInv = Ibody.inverse();
 }
 
 PhysicsBody::PhysicsBody(std::shared_ptr<PhysicsShape> shape, double mass, PhysicsLayer layer)
-:shape(shape), mass(mass), transform(glm::vec3(0.0), glm::quat(1.0, 0.0, 0.0, 0.0)), layer(layer), material({})
+:shape(shape), mass(mass), transform(Eigen::Vector3d(0.0, 0.0, 0.0), Eigen::Quaterniond(1.0, 0.0, 0.0, 0.0)), layer(layer), material({})
 {
     Ibody = shape->get_body_mat(mass);
-    IbodyInv = glm::inverse(Ibody);
+    IbodyInv = Ibody.inverse();
 }
 
-PhysicsBody::PhysicsBody(std::shared_ptr<PhysicsShape> shape, const glm::vec3& position, const glm::quat& orientation, double mass, PhysicsLayer layer)
+PhysicsBody::PhysicsBody(std::shared_ptr<PhysicsShape> shape, const Eigen::Vector3d& position, const Eigen::Quaterniond& orientation, double mass, PhysicsLayer layer)
 :shape(shape), transform(position, orientation), mass(mass), layer(layer), material({})
 {
     Ibody = shape->get_body_mat(mass);
-    IbodyInv = glm::inverse(Ibody);
+    IbodyInv = Ibody.inverse();
 }
 
 
 
-const glm::vec3& PhysicsBody::get_position() const
+const Eigen::Vector3d& PhysicsBody::get_position() const
 {
     return transform.position;
 }
 
-const glm::quat& PhysicsBody::get_orientation() const
+const Eigen::Quaterniond& PhysicsBody::get_orientation() const
 {
     return transform.orientation;
 }
 
-glm::mat4 PhysicsBody::get_world_matrix() const
+Eigen::Matrix4d PhysicsBody::get_world_matrix() const
 {
-    return glm::translate(glm::mat4(1.0), transform.position) * glm::toMat4(transform.orientation);
+    Eigen::Affine3d mat = Eigen::Affine3d::Identity();
+    mat.translate(transform.position);
+    mat.rotate(transform.orientation);
+    return mat.matrix();
 }
 
-void PhysicsBody::add_force(const glm::vec3& force)
+void PhysicsBody::add_force(const Eigen::Vector3d& force)
 {
     this->force += force;
 }
 
-void PhysicsBody::add_torque(const glm::vec3& torque)
+void PhysicsBody::add_torque(const Eigen::Vector3d& torque)
 {
     this->torque += torque;
 }
 
-void PhysicsBody::add_impulse(const glm::vec3& impulse)
+void PhysicsBody::add_impulse(const Eigen::Vector3d& impulse)
 {
     this->impulse += impulse;
 }
 
-void PhysicsBody::add_torque_impulse(const glm::vec3& torque_impulse)
+void PhysicsBody::add_torque_impulse(const Eigen::Vector3d& torque_impulse)
 {
     this->torque_impulse += torque_impulse;
 }
 
-void PhysicsBody::set_linear_velocity(const glm::vec3& v)
+void PhysicsBody::set_linear_velocity(const Eigen::Vector3d& v)
 {
-    linear_momentum.x = v.x * mass;
-    linear_momentum.y = v.y * mass;
-    linear_momentum.z = v.z * mass;
+    linear_momentum.x() = v.x() * mass;
+    linear_momentum.y() = v.y() * mass;
+    linear_momentum.z() = v.z() * mass;
 }
 
-void PhysicsBody::set_angular_velocity(const glm::vec3& omega)
+void PhysicsBody::set_angular_velocity(const Eigen::Vector3d& omega)
 {
-    glm::mat3 rotation = glm::toMat3(glm::normalize(transform.orientation));
-    glm::mat3 inertia_tensor = rotation * Ibody * glm::transpose(rotation);
+    transform.orientation.normalize();
+    Eigen::Matrix3d rotation = transform.orientation.toRotationMatrix();
+    Eigen::Matrix3d inertia_tensor = rotation * Ibody * rotation.transpose().eval();
     angular_momentum = inertia_tensor * omega;
 }
 
-void PhysicsBody::set_position(const glm::vec3& pos)
+void PhysicsBody::set_position(const Eigen::Vector3d& pos)
 {
     transform.position = pos;
 }
 
-void PhysicsBody::set_orientation(const glm::vec3& orientation)
+void PhysicsBody::set_orientation(const Eigen::Quaterniond& orientation)
 {
     transform.orientation = orientation;
 }
@@ -103,35 +107,30 @@ void PhysicsBody::step(double delta)
     angular_momentum += torque;
 
     // Get both velocities
-    glm::vec3 linear_velocity;
-    linear_velocity.x = linear_momentum.x / mass;
-    linear_velocity.y = linear_momentum.y / mass;
-    linear_velocity.z = linear_momentum.z / mass;
+    Eigen::Vector3d linear_velocity;
+    linear_velocity.x() = linear_momentum.x() / mass;
+    linear_velocity.y() = linear_momentum.y() / mass;
+    linear_velocity.z() = linear_momentum.z() / mass;
 
-    transform.orientation = glm::normalize(transform.orientation);
-    glm::mat3 R = glm::toMat3(transform.orientation);
-    glm::mat3 inertia_inv = R * IbodyInv * glm::transpose(R);
+    transform.orientation.normalize();
+    Eigen::Matrix3d R = transform.orientation.toRotationMatrix();
+    Eigen::Matrix3d inertia_inv = R * IbodyInv * R.transpose().eval();
 
-    glm::vec3 angular_velocity = inertia_inv * angular_momentum;
-    glm::quat angular_vel_quat = glm::quat(0.0f, angular_velocity);
-    glm::quat orientation_delta = angular_vel_quat * transform.orientation;
-    orientation_delta *= 0.5 * delta;
+    Eigen::Vector3d angular_velocity = inertia_inv * angular_momentum;
+    Eigen::Quaterniond angular_vel_quat = Eigen::Quaterniond(0.0f, angular_velocity);
+    Eigen::Quaterniond orientation_delta = angular_vel_quat * transform.orientation;
+    orientation_delta.coeffs() *= 0.5 * delta;
 
     // Change in position = velocity * time
-    glm::vec3 position_delta = linear_velocity;
+    Eigen::Vector3d position_delta = linear_velocity;
     position_delta *= delta;
 
     transform.position += position_delta;
-    transform.orientation = glm::normalize(orientation_delta + (0.5f * transform.orientation));
+    transform.orientation.coeffs() += (0.5f * transform.orientation.coeffs());
+    transform.orientation.normalize();
 
-    force = glm::vec3(0.0);
-    torque = glm::vec3(0.0);
-    impulse = glm::vec3(0.0);
-    torque_impulse = glm::vec3(0.0);
-}
-
-std::vector<uint8_t> PhysicsBody::serialize() const 
-{
-    NOT_IMPLEMENTED();
-    return {};
+    force = Eigen::Vector3d(0.0, 0.0, 0.0);
+    torque = Eigen::Vector3d(0.0, 0.0, 0.0);
+    impulse = Eigen::Vector3d(0.0, 0.0, 0.0);
+    torque_impulse = Eigen::Vector3d(0.0, 0.0, 0.0);
 }

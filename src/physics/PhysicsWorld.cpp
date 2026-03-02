@@ -13,7 +13,7 @@ int32_t PhysicsWorld::create_body(std::shared_ptr<PhysicsShape> shape, double ma
     return id;
 }
 
-int32_t PhysicsWorld::create_body(std::shared_ptr<PhysicsShape> shape, const glm::vec3& position, const glm::quat& orientation, double mass, PhysicsLayer layer)
+int32_t PhysicsWorld::create_body(std::shared_ptr<PhysicsShape> shape, const Eigen::Vector3d& position, const Eigen::Quaterniond& orientation, double mass, PhysicsLayer layer)
 {
     int32_t id = bodies.size();
     bodies.push_back(PhysicsBody(shape, position, orientation, mass, layer));
@@ -27,28 +27,28 @@ int32_t PhysicsWorld::create_body(std::shared_ptr<PhysicsShape> shape, const Phy
     return id;
 }
 
-int32_t PhysicsWorld::create_body(std::shared_ptr<PhysicsShape> shape, const PhysicsMaterial& material, const glm::vec3& position, const glm::quat& orientation, double mass, PhysicsLayer layer)
+int32_t PhysicsWorld::create_body(std::shared_ptr<PhysicsShape> shape, const PhysicsMaterial& material, const Eigen::Vector3d& position, const Eigen::Quaterniond& orientation, double mass, PhysicsLayer layer)
 {
     int32_t id = bodies.size();
     bodies.push_back(PhysicsBody(shape, material, position, orientation, mass, layer));
     return id;
 }
 
-glm::mat4 PhysicsWorld::get_world_matrix(int32_t id)
+Eigen::Matrix4d PhysicsWorld::get_world_matrix(int32_t id)
 {
     if (id < 0 || id > bodies.size() - 1) return {};
 
     return bodies[id].get_world_matrix();
 }
 
-void PhysicsWorld::set_linear_velocity(int32_t id, const glm::vec3& v)
+void PhysicsWorld::set_linear_velocity(int32_t id, const Eigen::Vector3d& v)
 {
     if (id < 0 || id > bodies.size() - 1) return;
 
     bodies[id].set_linear_velocity(v);
 }
 
-void PhysicsWorld::set_angular_velocity(int32_t id, const glm::vec3& omega)
+void PhysicsWorld::set_angular_velocity(int32_t id, const Eigen::Vector3d& omega)
 {
     if (id < 0 || id > bodies.size() - 1) return;
     bodies[id].set_angular_velocity(omega);
@@ -90,9 +90,9 @@ CollisionResult PhysicsWorld::check_sphere_sphere_collision(const PhysicsShape* 
     const SphereShape* const a_sphere = (const SphereShape* const)a;
     const SphereShape* const b_sphere = (const SphereShape* const)b;
 
-    glm::vec3 position_diff = bt->position - at->position;
+    Eigen::Vector3d position_diff = bt->position - at->position;
 
-    if ( std::abs(glm::length(position_diff)) < (a_sphere->r + b_sphere->r))
+    if ( std::abs(position_diff.norm()) < (a_sphere->r + b_sphere->r))
     {
         return CollisionResult {
             .colliding = true,
@@ -107,10 +107,11 @@ CollisionResult PhysicsWorld::check_sphere_plane_collision(const PhysicsShape* c
     SphereShape* s = (SphereShape*)sphere;
     PlaneShape* p = (PlaneShape*)plane;
 
-    glm::vec3 plane_norm = glm::normalize(glm::rotate(plane_transform->orientation, glm::vec3(0.0, 1.0, 0.0)));
+    Eigen::Vector3d plane_norm = plane_transform->orientation * Eigen::Vector3d(0.0, 1.0, 0.0);
+    plane_norm.normalize();
 
     // Check collision using mathematical formula
-    double norm_projection = glm::dot(sphere_transform->position - plane_transform->position, plane_norm) / glm::length(plane_norm);
+    double norm_projection = plane_norm.dot((sphere_transform->position - plane_transform->position)) / plane_norm.norm();
     
     if (std::abs(norm_projection) < s->r)
     {
@@ -149,34 +150,34 @@ CollisionResult PhysicsWorld::check_obb_obb_collision(const PhysicsShape* const 
 
     const float EPSILON = 1e-6f;
 
-    glm::mat3 a_axis = glm::toMat3(a_transform->orientation);
-    glm::mat3 b_axis = glm::toMat3(b_transform->orientation);
+    Eigen::Matrix3d a_axis = a_transform->orientation.toRotationMatrix();
+    Eigen::Matrix3d b_axis = b_transform->orientation.toRotationMatrix();
 
-    glm::mat3 rotation;
-    glm::mat3 abs_rotation;
+    Eigen::Matrix3d rotation;
+    Eigen::Matrix3d abs_rotation;
 
     // Compute rotation which represents the rotation of b in terms of a's coordinate space
     for (int i = 0; i < 3; i++)
     {
         for (int j = 0; j < 3; j++)
         {
-            rotation[i][j] = glm::dot(a_axis[i], b_axis[j]);
-            abs_rotation[i][j] = std::abs(rotation[i][j]) + EPSILON;
+            rotation(i, j) = a_axis.col(i).dot(b_axis.col(j));
+            abs_rotation(i, j) = std::abs(rotation(i, j)) + EPSILON;
         }
     }
 
     // Get the translation of b from a's center and put it in terms of a's coordinate system
-    glm::vec3 translation = b_transform->position - a_transform->position;
-    translation = glm::vec3(glm::dot(translation, a_axis[0]), glm::dot(translation, a_axis[1]), glm::dot(translation, a_axis[2]));
+    Eigen::Vector3d translation = b_transform->position - a_transform->position;
+    translation = Eigen::Vector3d(a_axis.col(0).dot(translation), a_axis.col(1).dot(translation), a_axis.col(2).dot(translation));
 
     float ra, rb;
 
     // Test axes of a
     for (int i = 0; i < 3; i++)
     {
-        ra = a_shape->half_extent[i];
-        rb = b_shape->half_extent.x * abs_rotation[i][0] + b_shape->half_extent.y * abs_rotation[i][1] + b_shape->half_extent.z * abs_rotation[i][2];
-        if (std::abs(translation[i]) > ra + rb) return CollisionResult {
+        ra = a_shape->half_extent(i);
+        rb = b_shape->half_extent.x() * abs_rotation(i, 0) + b_shape->half_extent.y() * abs_rotation(i, 1) + b_shape->half_extent.z() * abs_rotation(i, 2);
+        if (std::abs(translation(i)) > ra + rb) return CollisionResult {
             .colliding = false
         };
     }
@@ -185,9 +186,9 @@ CollisionResult PhysicsWorld::check_obb_obb_collision(const PhysicsShape* const 
     // Test axes of b
     for (int i = 0; i < 3; i++)
     {
-        ra = a_shape->half_extent.x * abs_rotation[0][i] + a_shape->half_extent.y * abs_rotation[1][i] + a_shape->half_extent.z * abs_rotation[2][i];
-        rb = b_shape->half_extent[i];
-        if ( std::abs(translation.x * rotation[0][i] + translation.y * rotation[1][i] + translation.z * rotation[2][i]) > ra + rb) return CollisionResult {
+        ra = a_shape->half_extent.x() * abs_rotation(0, i) + a_shape->half_extent.y() * abs_rotation(1, i) + a_shape->half_extent.z() * abs_rotation(2, i);
+        rb = b_shape->half_extent(i);
+        if ( std::abs(translation.x() * rotation(0, i) + translation.y() * rotation(1, i) + translation.z() * rotation(2, i)) > ra + rb) return CollisionResult {
             .colliding = false
         };
     }
@@ -195,57 +196,57 @@ CollisionResult PhysicsWorld::check_obb_obb_collision(const PhysicsShape* const 
 
     // Test cross axes
 
-    ra = a_shape->half_extent.y * abs_rotation[2][0] + a_shape->half_extent.z * abs_rotation[1][0];
-    rb = b_shape->half_extent.y * abs_rotation[0][2] + b_shape->half_extent.z * abs_rotation[0][1];
-    if (std::abs(translation.z * rotation[1][0] - translation.y * rotation[2][0]) > ra + rb) return CollisionResult {
+    ra = a_shape->half_extent.y() * abs_rotation(2, 0) + a_shape->half_extent.z() * abs_rotation(1, 0);
+    rb = b_shape->half_extent.y() * abs_rotation(0, 2) + b_shape->half_extent.z() * abs_rotation(0, 1);
+    if (std::abs(translation.z() * rotation(1, 0) - translation.y() * rotation(2, 0)) > ra + rb) return CollisionResult {
         .colliding = false
     };
 
-    ra = a_shape->half_extent.y * abs_rotation[2][1] + a_shape->half_extent.z * abs_rotation[1][1];
-    rb = b_shape->half_extent.x * abs_rotation[0][2] + b_shape->half_extent.z * abs_rotation[0][0];
-    if (std::abs(translation.z * rotation[1][1] - translation.y * rotation[2][1]) > ra + rb) return CollisionResult {
+    ra = a_shape->half_extent.y() * abs_rotation(2, 1) + a_shape->half_extent.z() * abs_rotation(1, 1);
+    rb = b_shape->half_extent.x() * abs_rotation(0, 2) + b_shape->half_extent.z() * abs_rotation(0, 0);
+    if (std::abs(translation.z() * rotation(1, 1) - translation.y() * rotation(2, 1)) > ra + rb) return CollisionResult {
         .colliding = false
     };
 
-    ra = a_shape->half_extent.y * abs_rotation[2][2] + a_shape->half_extent.z * abs_rotation[1][2];
-    rb = b_shape->half_extent.x * abs_rotation[0][1] + b_shape->half_extent.y * abs_rotation[0][0];
-    if (std::abs(translation.z * rotation[1][2] - translation.y * rotation[2][2]) > ra + rb) return CollisionResult {
+    ra = a_shape->half_extent.y() * abs_rotation(2, 2) + a_shape->half_extent.z() * abs_rotation(1, 2);
+    rb = b_shape->half_extent.x() * abs_rotation(0, 1) + b_shape->half_extent.y() * abs_rotation(0, 0);
+    if (std::abs(translation.z() * rotation(1, 2) - translation.y() * rotation(2, 2)) > ra + rb) return CollisionResult {
         .colliding = false
     };
 
-    ra = a_shape->half_extent.x * abs_rotation[2][0] + a_shape->half_extent.z * abs_rotation[0][0];
-    rb = b_shape->half_extent.y * abs_rotation[1][2] + b_shape->half_extent.z * abs_rotation[1][1];
-    if (std::abs(translation.x * rotation[2][0] - translation.z * rotation[0][0]) > ra + rb) return CollisionResult {
+    ra = a_shape->half_extent.x() * abs_rotation(2, 0) + a_shape->half_extent.z() * abs_rotation(0, 0);
+    rb = b_shape->half_extent.y() * abs_rotation(1, 2) + b_shape->half_extent.z() * abs_rotation(1, 1);
+    if (std::abs(translation.x() * rotation(2, 0) - translation.z() * rotation(0, 0)) > ra + rb) return CollisionResult {
         .colliding = false
     };
 
-    ra = a_shape->half_extent.x * abs_rotation[2][1] + a_shape->half_extent.z * abs_rotation[0][1];
-    rb = b_shape->half_extent.x * abs_rotation[1][2] + b_shape->half_extent.z * abs_rotation[1][0];
-    if (std::abs(translation.x * rotation[2][1] - translation.z * rotation[0][1]) > ra + rb) return CollisionResult {
+    ra = a_shape->half_extent.x() * abs_rotation(2, 1) + a_shape->half_extent.z() * abs_rotation(0, 1);
+    rb = b_shape->half_extent.x() * abs_rotation(1, 2) + b_shape->half_extent.z() * abs_rotation(1, 0);
+    if (std::abs(translation.x() * rotation(2, 1) - translation.z() * rotation(0, 1)) > ra + rb) return CollisionResult {
         .colliding = false
     };
 
-    ra = a_shape->half_extent.x * abs_rotation[2][2] + a_shape->half_extent.z * abs_rotation[0][2];
-    rb = b_shape->half_extent.x * abs_rotation[1][1] + b_shape->half_extent.y * abs_rotation[1][0];
-    if (std::abs(translation.x * rotation[2][2] - translation.z * rotation[0][2]) > ra + rb) return CollisionResult {
+    ra = a_shape->half_extent.x() * abs_rotation(2, 2) + a_shape->half_extent.z() * abs_rotation(0, 2);
+    rb = b_shape->half_extent.x() * abs_rotation(1, 1) + b_shape->half_extent.y() * abs_rotation(1, 0);
+    if (std::abs(translation.x()* rotation(2, 2) - translation.z() * rotation(0, 2)) > ra + rb) return CollisionResult {
         .colliding = false
     };
 
-    ra = a_shape->half_extent.x * abs_rotation[1][0] + a_shape->half_extent.y * abs_rotation[0][0];
-    rb = b_shape->half_extent.y * abs_rotation[2][2] + b_shape->half_extent.z * abs_rotation[2][1];
-    if (std::abs(translation.y * rotation[0][0] - translation.x * rotation[1][0]) > ra + rb) return CollisionResult {
+    ra = a_shape->half_extent.x() * abs_rotation(1, 0) + a_shape->half_extent.y() * abs_rotation(0, 0);
+    rb = b_shape->half_extent.y() * abs_rotation(2, 2) + b_shape->half_extent.z() * abs_rotation(2, 1);
+    if (std::abs(translation.y() * rotation(0, 0) - translation.x() * rotation(1, 0)) > ra + rb) return CollisionResult {
         .colliding = false
     };
 
-    ra = a_shape->half_extent.x * abs_rotation[1][1] + a_shape->half_extent.y * abs_rotation[0][1];
-    rb = b_shape->half_extent.x * abs_rotation[2][2] + b_shape->half_extent.z * abs_rotation[2][0];
-    if (std::abs(translation.y * rotation[0][1] - translation.x * rotation[1][1]) > ra + rb) return CollisionResult {
+    ra = a_shape->half_extent.x() * abs_rotation(1, 1) + a_shape->half_extent.y() * abs_rotation(0, 1);
+    rb = b_shape->half_extent.x() * abs_rotation(2, 2) + b_shape->half_extent.z() * abs_rotation(2, 0);
+    if (std::abs(translation.y() * rotation(0, 1) - translation.x() * rotation(1, 1)) > ra + rb) return CollisionResult {
         .colliding = false
     };
 
-    ra = a_shape->half_extent.x * abs_rotation[1][2] + a_shape->half_extent.y * abs_rotation[0][2];
-    rb = b_shape->half_extent.x * abs_rotation[2][1] + b_shape->half_extent.y * abs_rotation[2][0];
-    if (std::abs(translation.y * rotation[0][2] - translation.x * rotation[1][2]) > ra + rb) return CollisionResult {
+    ra = a_shape->half_extent.x() * abs_rotation(1, 2) + a_shape->half_extent.y() * abs_rotation(0, 2);
+    rb = b_shape->half_extent.x() * abs_rotation(2, 1) + b_shape->half_extent.y() * abs_rotation(2, 0);
+    if (std::abs(translation.y() * rotation(0, 2) - translation.x() * rotation(1, 2)) > ra + rb) return CollisionResult {
         .colliding = false
     };
 
@@ -274,16 +275,14 @@ void PhysicsWorld::update(double delta)
     {
         for (int j = 0; j < bodies.size(); j++)
         {
-            if (i == j) continue;
+            if (i == j || (bodies[i].layer == PhysicsLayer::STATIC && bodies[j].layer == PhysicsLayer::STATIC)) continue;
 
             CollisionResult result = check_collision(&bodies[i], &bodies[j]);
-            if (result.colliding)
-            {
-                // assert(false);
-            }
             if (result.colliding) 
             {
-                bodies[i].linear_momentum = glm::reflect(bodies[i].linear_momentum, result.norm) * bodies[i].material.restitution;
+                result.norm.normalize();
+                Eigen::Vector3d reflected_vec = bodies[i].linear_momentum - 2.0f * bodies[i].linear_momentum.dot(result.norm) * result.norm;
+                bodies[i].linear_momentum = reflected_vec * (bodies[i].material.restitution + bodies[j].material.restitution) / 2.0f;
             }
 
         }
@@ -297,7 +296,7 @@ void PhysicsWorld::update(double delta)
         {
  
             // Gravity = acceleration (-9.8) * mass
-            glm::vec3 gravity = grav_acceleration;
+            Eigen::Vector3d gravity = grav_acceleration;
             gravity *= body.mass;
             body.add_force(gravity);
 
@@ -308,7 +307,7 @@ void PhysicsWorld::update(double delta)
     }
 }
 
-void PhysicsWorld::set_gravity(const glm::vec3& grav)
+void PhysicsWorld::set_gravity(const Eigen::Vector3d& grav)
 {
     this->grav_acceleration = grav;
 }
@@ -323,8 +322,8 @@ void PhysicsWorld::set_gravity(const glm::vec3& grav)
 void compute_force_and_torque(double t, RigidBody& rb)
 {
     // Compute force and torque from impulses
-    glm::vec3 force = glm::vec3(0.0);
-    glm::vec3 torque = glm::vec3(0.0);
+    Eigen::Vector3d force = Eigen::Vector3d(0.0, 0.0, 0.0);
+    Eigen::Vector3d torque = Eigen::Vector3d(0.0, 0.0, 0.0);
 
 
     /*int impulse_count = impulses.size();
@@ -334,7 +333,7 @@ void compute_force_and_torque(double t, RigidBody& rb)
         Impulse& impulse = impulses.front();
         impulses.pop();
 
-        glm::vec3 j = impulse.force;
+        Eigen::Vector3d j = impulse.force;
         double time;
 
         // Time is either the delta of the frame (t) or the time remaining on the impulse (impulse.time)
@@ -354,11 +353,11 @@ void compute_force_and_torque(double t, RigidBody& rb)
 
     // Add constant forces
     // Gravity
-    glm::vec3 gravity = glm::vec3(0.0, 0.0, 0.0);
+    Eigen::Vector3d gravity = Eigen::Vector3d(0.0, 0.0, 0.0);
     gravity *= t;
     force += gravity;
 
-    glm::vec3 inst_torque = glm::vec3(0.0, 0.0, 0.0);
+    Eigen::Vector3d inst_torque = Eigen::Vector3d(0.0, 0.0, 0.0);
     inst_torque *= t;
     torque += inst_torque;
     
@@ -373,37 +372,37 @@ void compute_force_and_torque(double t, RigidBody& rb)
 // TODO: Have dydt place the force and torque (and other per frame variables) into their own struct and return it (makes no sense to place it in RigidBody if it is per frame)
 
 // Takes a and transforms it into a_star
-void vec_to_mat_star(glm::vec3 a, glm::mat3& a_star)
+void vec_to_mat_star(Eigen::Vector3d a, Eigen::Matrix3d& a_star)
 {
     //TODO: Check to make sure this is okay
-    a_star[0][0] = 0.0;
-    a_star[0][1] = -a.z;
-    a_star[0][2] = a.y;
+    a_star(0, 0) = 0.0;
+    a_star(0, 1) = -a.z();
+    a_star(0, 2) = a.y();
 
-    a_star[1][0] = a.z;
-    a_star[1][1] = 0.0;
-    a_star[1][2] = -a.x;
+    a_star(1, 0) = a.z();
+    a_star(1, 1) = 0.0;
+    a_star(1, 2) = -a.x();
 
-    a_star[2][0] = -a.y;
-    a_star[2][1] = a.x;
-    a_star[2][2] = 0.0;
+    a_star(2, 0) = -a.y();
+    a_star(2, 1) = a.x();
+    a_star(2, 2) = 0.0;
 }
 
 // Computes instantaneous changes of rb at time t and places the data into dydt
 void dydt(double t, RigidBody& rb)
 {
     // Compute Velocity
-    rb.v[0] = rb.P[0] / rb.mass;
-    rb.v[1] = rb.P[1] / rb.mass;
-    rb.v[2] = rb.P[2] / rb.mass;
+    rb.v.x() = rb.P.x() / rb.mass;
+    rb.v.y() = rb.P.y() / rb.mass;
+    rb.v.z() = rb.P.z() / rb.mass;
     rb.v *= t;      // Scale by time
     
-    rb.q = glm::normalize(rb.q);
-    rb.R = glm::toMat3(rb.q);
+    rb.q.normalize();
+    rb.R = rb.q.toRotationMatrix();
 
    
     // Compute inverse Inertia tensor
-    rb.Iinv = rb.R * rb.IbodyInv * glm::transpose(rb.R);
+    rb.Iinv = rb.R * rb.IbodyInv * rb.R.transpose().eval();
 
     // Compute angular velocity
     rb.omega = rb.Iinv * rb.L;
@@ -411,10 +410,10 @@ void dydt(double t, RigidBody& rb)
     compute_force_and_torque(t, rb);
 
     // Compute qdot (Instantaneous rate of change of orientation encoded in quaternion)
-    glm::quat omega_q = glm::quat(0.0f, rb.omega);
+    Eigen::Quaterniond omega_q = Eigen::Quaterniond(0.0f, rb.omega);
     rb.qdot = (omega_q * rb.q);
-    rb.qdot *= 0.5;
-    rb.qdot *= t;
+    rb.qdot.coeffs() *= 0.5;
+    rb.qdot.coeffs() *= t;
 }
 
 // TODO: add logic to handle the case that delta is too large (split the integration into multiple steps);
@@ -434,5 +433,6 @@ void ode(RigidBody& rb, double delta)
     rb.x += rb.v;
 
     // FIXME: This might be wrong
-    rb.q = glm::normalize(rb.qdot + (0.5f * rb.q));
+    rb.q.coeffs() = rb.qdot.coeffs() + (0.5f * rb.q.coeffs());
+    rb.q.normalize();
 }

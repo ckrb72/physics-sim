@@ -285,10 +285,10 @@ Mesh::~Mesh()
     glDeleteBuffers(1, &ebo);
 }
 
-void Mesh::draw(unsigned int shader, const glm::mat4& model) const
+void Mesh::draw(unsigned int shader, const std::array<float, 16>& model_mat) const
 {
     glUseProgram(shader);
-    glUniformMatrix4fv(glGetUniformLocation(shader, "model"), 1, GL_FALSE, glm::value_ptr(model));
+    glUniformMatrix4fv(glGetUniformLocation(shader, "model"), 1, GL_FALSE, model_mat.data());
 
     glBindVertexArray(vao);
     glDrawElements(GL_TRIANGLES, indices.size() * 3, GL_UNSIGNED_INT, nullptr);
@@ -317,10 +317,10 @@ Curve::~Curve()
     glDeleteVertexArrays(1, &vao);
 }
 
-void Curve::draw(unsigned int shader, const glm::mat4& model) const
+void Curve::draw(unsigned int shader, const std::array<float, 16>& model_mat) const
 {
     glUseProgram(shader);
-    glUniformMatrix4fv(glGetUniformLocation(shader, "model"), 1, GL_FALSE, glm::value_ptr(model));
+    glUniformMatrix4fv(glGetUniformLocation(shader, "model"), 1, GL_FALSE, model_mat.data());
 
     glBindVertexArray(vao);
     glDrawArrays(GL_LINE_STRIP, 0, points.size());

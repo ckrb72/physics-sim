@@ -16,6 +16,7 @@ file(GLOB_RECURSE SRC_UTIL_FILES "${SROUCE_DIR}/util/*.cpp")
 add_subdirectory(vendor/glfw)
 add_subdirectory(vendor/imgui)
 
+include_directories("${CMAKE_CURRENT_SOURCE_DIR}/vendor/eigen")
 
 add_executable(bouncing_sphere "${SOURCE_DIR}/apps/bouncing_sphere.cpp" ${SRC_PHYSICS_FILES} ${SRC_RENDER_FILES} ${SRC_RENDER_C_FILES} ${SRC_UTIL_FILES})
 target_include_directories(bouncing_sphere PUBLIC "${VENDOR_DIR}/glad/include" "${VENDOR_DIR}/glm" "${SOURCE_DIR}")

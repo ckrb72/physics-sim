@@ -23,18 +23,12 @@ int main()
     PhysicsWorld world;
 
     std::shared_ptr<Geometry> box_shape = GeometryFactory::load_rect(2.0f, 2.0f, 2.0f);
-    int32_t box_a_body = world.create_body(std::make_shared<OBBShape>(glm::vec3(1.0f, 1.0f, 1.0f)), glm::vec3(-5.0f, 0.0f, 0.0f), glm::angleAxis(glm::radians(45.0f), glm::vec3(0.0f, 0.0f, 1.0f)), 100.0f, PhysicsLayer::DYNAMIC);
-    world.set_linear_velocity(box_a_body, glm::vec3(1.0f, 0.0f, 0.0f));
-    world.set_angular_velocity(box_a_body, glm::vec3(0.0f, 1.0f, 1.0f));
-    int32_t box_b_body = world.create_body(std::make_shared<OBBShape>(glm::vec3(1.0f, 1.0f, 1.0f)), glm::vec3(5.0f, 0.0f, 0.0f), glm::quat(1.0f, 0.0f, 0.0f, 0.0f), 100.0f, PhysicsLayer::DYNAMIC);
-    world.set_linear_velocity(box_b_body, glm::vec3(-1.0f, 0.0f, 0.0f));
-    world.set_angular_velocity(box_b_body, glm::vec3(1.0f, 0.0f, 1.0f));
-
-    // std::shared_ptr<Geometry> box_shape = GeometryFactory::load_sphere(1.0f, 2);
-    // int32_t box_a_body = world.create_body(std::make_shared<SphereShape>(1.0f), glm::vec3(-5.0f, 0.0f, 0.0f), glm::quat(1.0f, 0.0f, 0.0f, 0.0f), 100.0f, PhysicsLayer::DYNAMIC);
-    // world.set_linear_velocity(box_a_body, glm::vec3(1.0f, 0.0f, 0.0f));
-    // int32_t box_b_body = world.create_body(std::make_shared<SphereShape>(1.0f), glm::vec3(5.0f, 0.0f, 0.0f), glm::quat(1.0f, 0.0f, 0.0f, 0.0f), 100.0f, PhysicsLayer::DYNAMIC);
-    // world.set_linear_velocity(box_b_body, glm::vec3(-1.0f, 0.0f, 0.0f));
+    int32_t box_a_body = world.create_body(std::make_shared<OBBShape>(Eigen::Vector3d(1.0f, 1.0f, 1.0f)), Eigen::Vector3d(-5.0f, 0.0f, 0.0f), Eigen::Quaterniond(Eigen::AngleAxisd(DegreesToRadians(45.0), Eigen::Vector3d(0.0, 0.0, 1.0))), 100.0, PhysicsLayer::DYNAMIC);
+    world.set_linear_velocity(box_a_body, Eigen::Vector3d(1.0f, 0.0f, 0.0f));
+    world.set_angular_velocity(box_a_body, Eigen::Vector3d(0.0f, 1.0f, 1.0f));
+    int32_t box_b_body = world.create_body(std::make_shared<OBBShape>(Eigen::Vector3d(1.0f, 1.0f, 1.0f)), Eigen::Vector3d(5.0f, 0.0f, 0.0f), Eigen::Quaterniond::Identity(), 100.0, PhysicsLayer::DYNAMIC);
+    world.set_linear_velocity(box_b_body, Eigen::Vector3d(-1.0f, 0.0f, 0.0f));
+    world.set_angular_velocity(box_b_body, Eigen::Vector3d(1.0f, 0.0f, 1.0f));
 
     unsigned int program;
     if(!load_shader("../shader/collision_view.vert", "../shader/collision_view.frag", &program))
@@ -93,8 +87,8 @@ int main()
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         
         glUniform1f(glGetUniformLocation(program, "colliding"), (world.is_colliding(box_a_body, box_b_body)) ? 1.0f : 0.0f);
-        box_shape->draw(program, world.get_world_matrix(box_a_body));
-        box_shape->draw(program, world.get_world_matrix(box_b_body));
+        box_shape->draw(program, EigenMatrixToFloatArray(world.get_world_matrix(box_a_body)));
+        box_shape->draw(program, EigenMatrixToFloatArray(world.get_world_matrix(box_b_body)));
         
         glfwSwapBuffers(window);
     }

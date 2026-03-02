@@ -87,7 +87,7 @@ int main()
         glUseProgram(shader);
         glUniformMatrix4fv(glGetUniformLocation(shader, "view"), 1, GL_FALSE, glm::value_ptr(view));
 
-        curve->draw(shader, glm::mat4(1.0));
+        curve->draw(shader, EigenMatrixToFloatArray(Eigen::Matrix4d::Identity()));
         
         glfwSwapBuffers(window);
     }

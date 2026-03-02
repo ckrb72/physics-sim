@@ -19,8 +19,8 @@ int main()
     glClearColor(0.3, 0.3, 0.3, 1.0);
 
     PhysicsWorld world;
-    int32_t box_body = world.create_body(std::make_shared<OBBShape>(glm::vec3(0.125, 2.0, 0.125)), 10.0, PhysicsLayer::DYNAMIC);
-    int32_t weight_body = world.create_body(std::make_shared<OBBShape>(glm::vec3(0.5)), glm::vec3(0.0, -2.5, 0.0), glm::angleAxis(0.0f, glm::vec3(1.0, 0.0, 0.0)), 100.0, PhysicsLayer::DYNAMIC);
+    int32_t box_body = world.create_body(std::make_shared<OBBShape>(Eigen::Vector3d(0.125, 2.0, 0.125)), 10.0, PhysicsLayer::DYNAMIC);
+    int32_t weight_body = world.create_body(std::make_shared<OBBShape>(Eigen::Vector3d(0.5, 0.5, 0.5)), Eigen::Vector3d(0.0, -2.5, 0.0), Eigen::Quaterniond(Eigen::AngleAxis(0.0, Eigen::Vector3d(1.0, 0.0, 0.0))), 100.0, PhysicsLayer::DYNAMIC);
 
     std::shared_ptr<Geometry> box_mesh = GeometryFactory::load_rect(0.25f, 4.0f, 0.25f);
     std::shared_ptr<Geometry> weight_mesh = GeometryFactory::load_rect(1.0f, 1.0f, 1.0f);
@@ -81,8 +81,8 @@ int main()
         glUseProgram(shader);
         glUniformMatrix4fv(glGetUniformLocation(shader, "view"), 1, GL_FALSE, glm::value_ptr(view));
 
-        box_mesh->draw(shader, world.get_world_matrix(box_body));
-        weight_mesh->draw(shader, world.get_world_matrix(weight_body));
+        box_mesh->draw(shader, EigenMatrixToFloatArray(world.get_world_matrix(box_body)));
+        weight_mesh->draw(shader, EigenMatrixToFloatArray(world.get_world_matrix(weight_body)));
 
         glfwSwapBuffers(window);
     }
