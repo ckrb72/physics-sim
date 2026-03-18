@@ -5,6 +5,9 @@
 #include <Eigen/Dense>
 #include <cmath>
 
+using Vector6d = Eigen::Matrix<double, 6, 1>;
+
+
 inline double DegreesToRadians(double degrees)
 {
     return degrees * (M_PI / 180.0);
