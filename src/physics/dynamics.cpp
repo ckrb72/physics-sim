@@ -1,4 +1,4 @@
-#include "inverse_dynamics.h"
+#include "dynamics.h"
 
 
 // will eventually want to pass in a whole kinematic tree with joints but for now just focus on a single body
@@ -18,7 +18,7 @@ static Vector6d forceCrossProduct(const Vector6d& a, const Vector6d& b)
     return product;
 }
 
-Vector6d calculateInverseDynamics(const Vector6d& currentPosition, const Vector6d& currentVelocity, const Eigen::Matrix<double, 6, 6>& inertia, const Vector6d& desiredAcceleration, const Vector6d& externalForces)
+Vector6d calculateInverseDynamics(const RigidBodyState& rb, const Vector6d& desiredAcceleration, const Vector6d& externalAcceleration)
 {
 
     // For now parent velocity and acceleration are 0
@@ -53,9 +53,15 @@ Vector6d calculateInverseDynamics(const Vector6d& currentPosition, const Vector6
             // Add the converted force to the parent's currently calculated force
 
             // Project the force along the joint axis
-    Vector6d iv = inertia * currentVelocity;
-    Vector6d result = inertia * (desiredAcceleration - externalForces) + forceCrossProduct(currentVelocity, iv);
+    Vector6d iv = rb.spatial_inertia * rb.velocity;
+    Vector6d result = rb.spatial_inertia * (desiredAcceleration - externalAcceleration) + forceCrossProduct(rb.velocity, iv);
 
     // Won't actually return anything as everything will be stored in the rigid bodies
     return result;
+}
+
+
+Vector6d calculateForwardDynamics(const RigidBodyState& rb, const Vector6d& externalForces)
+{
+    return rb.spatial_inertia.inverse() * (externalForces - forceCrossProduct(rb.velocity, rb.spatial_inertia * rb.velocity));
 }

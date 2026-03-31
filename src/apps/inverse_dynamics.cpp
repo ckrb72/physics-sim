@@ -1,6 +1,6 @@
 #include <iostream>
 #include <physics/physics.h>
-#include <physics/inverse_dynamics.h>
+#include <physics/dynamics.h>
 
 int main()
 {
@@ -38,8 +38,13 @@ int main()
     Vector6d gravity;
     gravity << 0.0, 0.0, 0.0, 0.0, -9.8 * mass, 0.0;
 
-    Vector6d forces = calculateInverseDynamics(position, velocity, spatial_inertia, desired_acceleration, gravity);
+    RigidBodyState state = {
+        .position = position,
+        .velocity = velocity,
+        .spatial_inertia = spatial_inertia
+    };
 
+    Vector6d forces = calculateInverseDynamics(state, desired_acceleration, gravity);
     std::cout << forces << std::endl;
 
     return 0;

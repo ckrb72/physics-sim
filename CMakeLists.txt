@@ -37,3 +37,7 @@ target_link_libraries(obb ${OPENGL_LIBRARIES} glfw imgui)
 add_executable(inverse_dynamics "${SOURCE_DIR}/apps/inverse_dynamics.cpp" ${SRC_PHYSICS_FILES} ${SRC_RENDER_FILES} ${SRC_RENDER_C_FILES} ${SRC_UTIL_FILES})
 target_include_directories(inverse_dynamics PUBLIC "${VENDOR_DIR}/glad/include" "${VENDOR_DIR}/glm" "${SOURCE_DIR}")
 target_link_libraries(inverse_dynamics ${OPENGL_LIBRARIES} glfw imgui)
+
+add_executable(forward_dynamics "${SOURCE_DIR}/apps/forward_dynamics.cpp" ${SRC_PHYSICS_FILES} ${SRC_RENDER_FILES} ${SRC_RENDER_C_FILES} ${SRC_UTIL_FILES})
+target_include_directories(forward_dynamics PUBLIC "${VENDOR_DIR}/glad/include" "${VENDOR_DIR}/glm" "${SOURCE_DIR}")
+target_link_libraries(forward_dynamics ${OPENGL_LIBRARIES} glfw imgui)
