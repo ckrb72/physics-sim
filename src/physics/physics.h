@@ -46,6 +46,35 @@ struct PhysicsMaterial
     float restitution = 1.0f;
 };
 
+// struct SphereShape
+// {
+//     float radius;
+// };
+
+// struct PlaneShape
+// {
+//     Eigen::Vector3d extent;
+// };
+
+// struct OBBShape
+// {
+//     Eigen::Vector3d half_extent;
+// };
+
+// struct PhysicsShape
+// {
+//     ShapeType type;
+
+//     // In a real engine would want to make each of these into an array and just have an index
+//     union {
+//         SphereShape sphere,
+//         PlaneShape plane,
+//         OBBShape obb
+//     };
+// };
+
+// Eigen::Matrix<6, 6, double> GetSpatialInertia(const PhysicsShape& shape, double mass);
+
 // Change this up completely...
 // Make these just be a tag essentially that tells what type of shape it is
 // Then have a method that gets the data for that specific shape and have the actual
@@ -96,31 +125,6 @@ class OBBShape : public PhysicsShape
         Eigen::Matrix3d get_body_mat(double mass) override;
         AABBox get_aabb() override;
 };
-
-/*class ConeShape : public PhysicsShape
-{
-    private:
-        double height;
-        double radius;
-
-    public:
-        ConeShape(double radius, double height);
-        bool collide() override;
-        Eigen::Matrix4d get_body_mat() override;
-};
-
-class CylinderShape : public PhysicsShape
-{
-    private:
-        double radius;
-        double height;
-    
-    public:
-        CylinderShape(double radius, double height);
-        bool collide() override;
-        Eigen::Matrix4d get_body_mat() override;
-};*/
-
 
 enum PhysicsLayer
 {
@@ -194,8 +198,6 @@ class PhysicsBody
         // Creates an instantaneous change in velocity (either linear or angular depending on the function used)
         void add_impulse(const Eigen::Vector3d& impulse);
         void add_torque_impulse(const Eigen::Vector3d& torque_impulse);
-
-        std::vector<uint8_t> serialize() const;
 
         void step(double delta);
 };
@@ -276,25 +278,4 @@ class PhysicsWorld
 
         // TODO: Updates with 1 / 60 second granularity. If delta > 1 / 60 the integration step is done multiple times
         void update(double delta);  // This is where the integration actually occurs
-};
-
-struct RigidBody
-{
-    double mass;
-    Eigen::Matrix3d Ibody;
-    Eigen::Matrix3d IbodyInv;
-
-    Eigen::Vector3d x;    // pos
-    Eigen::Quaterniond q;    // orientation expressed as a quaternion
-    Eigen::Vector3d P;    // linear momentum
-    Eigen::Vector3d L;    // angular momentum
-
-    Eigen::Matrix3d Iinv; // Inverse inertia tensor
-    Eigen::Vector3d v;    // velocity
-    Eigen::Vector3d omega;// angular velocity
-    Eigen::Matrix3d R;    // Orientation derived from quaternion q
-    Eigen::Quaterniond qdot; // Change of orientation quaternion
-
-    Eigen::Vector3d force;
-    Eigen::Vector3d torque;
 };

@@ -1,5 +1,4 @@
 #include "physics.h"
-#include <util/util.h>
 
 PhysicsWorld::PhysicsWorld()
 {
@@ -132,13 +131,13 @@ CollisionResult PhysicsWorld::check_plane_plane_collision(const PhysicsShape* co
 
 CollisionResult PhysicsWorld::check_sphere_obb_collision(const PhysicsShape* const sphere, const Transform* const sphere_transform, const PhysicsShape* const obb, const Transform* const obb_transform)
 {
-    NOT_IMPLEMENTED();
+    // NOT_IMPLEMENTED();
     return {};
 }
 
 CollisionResult PhysicsWorld::check_plane_obb_collision(const PhysicsShape* const plane, const Transform* const plane_transform, const PhysicsShape* const obb, const Transform* const obb_transform)
 {
-    NOT_IMPLEMENTED();
+    // NOT_IMPLEMENTED();
     return {};
 }
 
@@ -316,123 +315,123 @@ void PhysicsWorld::set_gravity(const Eigen::Vector3d& grav)
 
 
 
-// Computes Force and Torque over time t and places them in rb
-// This actually technically calculates the impulse and impulsive torque OVER the time t,
-// not the force and torque AT time t.
-void compute_force_and_torque(double t, RigidBody& rb)
-{
-    // Compute force and torque from impulses
-    Eigen::Vector3d force = Eigen::Vector3d(0.0, 0.0, 0.0);
-    Eigen::Vector3d torque = Eigen::Vector3d(0.0, 0.0, 0.0);
+// // Computes Force and Torque over time t and places them in rb
+// // This actually technically calculates the impulse and impulsive torque OVER the time t,
+// // not the force and torque AT time t.
+// void compute_force_and_torque(double t, RigidBody& rb)
+// {
+//     // Compute force and torque from impulses
+//     Eigen::Vector3d force = Eigen::Vector3d(0.0, 0.0, 0.0);
+//     Eigen::Vector3d torque = Eigen::Vector3d(0.0, 0.0, 0.0);
 
 
-    /*int impulse_count = impulses.size();
+//     /*int impulse_count = impulses.size();
 
-    for (int i = 0; i < impulse_count; i++)
-    {
-        Impulse& impulse = impulses.front();
-        impulses.pop();
+//     for (int i = 0; i < impulse_count; i++)
+//     {
+//         Impulse& impulse = impulses.front();
+//         impulses.pop();
 
-        Eigen::Vector3d j = impulse.force;
-        double time;
+//         Eigen::Vector3d j = impulse.force;
+//         double time;
 
-        // Time is either the delta of the frame (t) or the time remaining on the impulse (impulse.time)
-        if (t <= impulse.time) time = t;
-        else time = impulse.time;
+//         // Time is either the delta of the frame (t) or the time remaining on the impulse (impulse.time)
+//         if (t <= impulse.time) time = t;
+//         else time = impulse.time;
 
-        j *= time;
+//         j *= time;
 
-        force += j;
-        torque += glm::cross((impulse.pos - rb.x), j);
+//         force += j;
+//         torque += glm::cross((impulse.pos - rb.x), j);
 
-        impulse.time -= time;
+//         impulse.time -= time;
 
-        if (impulse.time > 0.0) impulses.push(impulse);
-    }*/
+//         if (impulse.time > 0.0) impulses.push(impulse);
+//     }*/
 
 
-    // Add constant forces
-    // Gravity
-    Eigen::Vector3d gravity = Eigen::Vector3d(0.0, 0.0, 0.0);
-    gravity *= t;
-    force += gravity;
+//     // Add constant forces
+//     // Gravity
+//     Eigen::Vector3d gravity = Eigen::Vector3d(0.0, 0.0, 0.0);
+//     gravity *= t;
+//     force += gravity;
 
-    Eigen::Vector3d inst_torque = Eigen::Vector3d(0.0, 0.0, 0.0);
-    inst_torque *= t;
-    torque += inst_torque;
+//     Eigen::Vector3d inst_torque = Eigen::Vector3d(0.0, 0.0, 0.0);
+//     inst_torque *= t;
+//     torque += inst_torque;
     
-    // These are actually technically impulse and impulsive torque since we are multiplying by time
-    // But it doesn't really matter as long as we are consistent
-    rb.force = force;
+//     // These are actually technically impulse and impulsive torque since we are multiplying by time
+//     // But it doesn't really matter as long as we are consistent
+//     rb.force = force;
 
-    rb.torque = torque;
-    rb.torque *= t;
-}
+//     rb.torque = torque;
+//     rb.torque *= t;
+// }
 
-// TODO: Have dydt place the force and torque (and other per frame variables) into their own struct and return it (makes no sense to place it in RigidBody if it is per frame)
+// // TODO: Have dydt place the force and torque (and other per frame variables) into their own struct and return it (makes no sense to place it in RigidBody if it is per frame)
 
-// Takes a and transforms it into a_star
-void vec_to_mat_star(Eigen::Vector3d a, Eigen::Matrix3d& a_star)
-{
-    //TODO: Check to make sure this is okay
-    a_star(0, 0) = 0.0;
-    a_star(0, 1) = -a.z();
-    a_star(0, 2) = a.y();
+// // Takes a and transforms it into a_star
+// void vec_to_mat_star(Eigen::Vector3d a, Eigen::Matrix3d& a_star)
+// {
+//     //TODO: Check to make sure this is okay
+//     a_star(0, 0) = 0.0;
+//     a_star(0, 1) = -a.z();
+//     a_star(0, 2) = a.y();
 
-    a_star(1, 0) = a.z();
-    a_star(1, 1) = 0.0;
-    a_star(1, 2) = -a.x();
+//     a_star(1, 0) = a.z();
+//     a_star(1, 1) = 0.0;
+//     a_star(1, 2) = -a.x();
 
-    a_star(2, 0) = -a.y();
-    a_star(2, 1) = a.x();
-    a_star(2, 2) = 0.0;
-}
+//     a_star(2, 0) = -a.y();
+//     a_star(2, 1) = a.x();
+//     a_star(2, 2) = 0.0;
+// }
 
-// Computes instantaneous changes of rb at time t and places the data into dydt
-void dydt(double t, RigidBody& rb)
-{
-    // Compute Velocity
-    rb.v.x() = rb.P.x() / rb.mass;
-    rb.v.y() = rb.P.y() / rb.mass;
-    rb.v.z() = rb.P.z() / rb.mass;
-    rb.v *= t;      // Scale by time
+// // Computes instantaneous changes of rb at time t and places the data into dydt
+// void dydt(double t, RigidBody& rb)
+// {
+//     // Compute Velocity
+//     rb.v.x() = rb.P.x() / rb.mass;
+//     rb.v.y() = rb.P.y() / rb.mass;
+//     rb.v.z() = rb.P.z() / rb.mass;
+//     rb.v *= t;      // Scale by time
     
-    rb.q.normalize();
-    rb.R = rb.q.toRotationMatrix();
+//     rb.q.normalize();
+//     rb.R = rb.q.toRotationMatrix();
 
    
-    // Compute inverse Inertia tensor
-    rb.Iinv = rb.R * rb.IbodyInv * rb.R.transpose().eval();
+//     // Compute inverse Inertia tensor
+//     rb.Iinv = rb.R * rb.IbodyInv * rb.R.transpose().eval();
 
-    // Compute angular velocity
-    rb.omega = rb.Iinv * rb.L;
+//     // Compute angular velocity
+//     rb.omega = rb.Iinv * rb.L;
 
-    compute_force_and_torque(t, rb);
+//     compute_force_and_torque(t, rb);
 
-    // Compute qdot (Instantaneous rate of change of orientation encoded in quaternion)
-    Eigen::Quaterniond omega_q = Eigen::Quaterniond(0.0f, rb.omega);
-    rb.qdot = (omega_q * rb.q);
-    rb.qdot.coeffs() *= 0.5;
-    rb.qdot.coeffs() *= t;
-}
+//     // Compute qdot (Instantaneous rate of change of orientation encoded in quaternion)
+//     Eigen::Quaterniond omega_q = Eigen::Quaterniond(0.0f, rb.omega);
+//     rb.qdot = (omega_q * rb.q);
+//     rb.qdot.coeffs() *= 0.5;
+//     rb.qdot.coeffs() *= t;
+// }
 
-// TODO: add logic to handle the case that delta is too large (split the integration into multiple steps);
-void ode(RigidBody& rb, double delta)
-{
-    // Compute derivatives
-    dydt(delta, rb);
+// // TODO: add logic to handle the case that delta is too large (split the integration into multiple steps);
+// void ode(RigidBody& rb, double delta)
+// {
+//     // Compute derivatives
+//     dydt(delta, rb);
 
-    // TOOD: Might want to rename these fields to impulse and impulsive torque since that makes more sense
-    // Add force (technically impulse) to linear momentum
-    rb.P += rb.force;
+//     // TOOD: Might want to rename these fields to impulse and impulsive torque since that makes more sense
+//     // Add force (technically impulse) to linear momentum
+//     rb.P += rb.force;
 
-    // Add torque (technically impulsive torque) to angular momentum
-    rb.L += rb.torque;
+//     // Add torque (technically impulsive torque) to angular momentum
+//     rb.L += rb.torque;
 
-    // Compute new position and orientation
-    rb.x += rb.v;
+//     // Compute new position and orientation
+//     rb.x += rb.v;
 
-    // FIXME: This might be wrong
-    rb.q.coeffs() = rb.qdot.coeffs() + (0.5f * rb.q.coeffs());
-    rb.q.normalize();
-}
+//     // FIXME: This might be wrong
+//     rb.q.coeffs() = rb.qdot.coeffs() + (0.5f * rb.q.coeffs());
+//     rb.q.normalize();
+// }

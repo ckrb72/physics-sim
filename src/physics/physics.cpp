@@ -1,5 +1,4 @@
 #include "physics.h"
-#include <util/util.h>
 
     /*
     const double mass = 10.0;
@@ -43,7 +42,7 @@ Eigen::Matrix3d SphereShape::get_body_mat(double mass)
 
 AABBox SphereShape::get_aabb()
 {
-    NOT_IMPLEMENTED();
+    // NOT_IMPLEMENTED();
     return AABBox{};
 }
 
@@ -55,7 +54,7 @@ PlaneShape::PlaneShape(const Eigen::Vector3d& extent)
 
 Eigen::Matrix3d PlaneShape::get_body_mat(double mass)
 {
-    NOT_IMPLEMENTED();
+    // NOT_IMPLEMENTED();
     Eigen::Vector3d dimensions;
     dimensions.x() = extent.x() * 2.0;
     dimensions.y() = extent.y() * 2.0;
@@ -71,7 +70,7 @@ Eigen::Matrix3d PlaneShape::get_body_mat(double mass)
 
 AABBox PlaneShape::get_aabb()
 {
-    NOT_IMPLEMENTED();
+    // NOT_IMPLEMENTED();
     return AABBox{};
 }
 
@@ -98,6 +97,6 @@ Eigen::Matrix3d OBBShape::get_body_mat(double mass)
 
 AABBox OBBShape::get_aabb()
 {
-    NOT_IMPLEMENTED();
+    // NOT_IMPLEMENTED();
     return {};
 }

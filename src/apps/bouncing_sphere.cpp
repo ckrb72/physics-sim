@@ -6,7 +6,6 @@
 #include <render/render.h>
 #include <render/engine.h>
 #include <physics/physics.h>
-#include <util/util.h>
 
 const int MAX_AABB = 10;
 const int AABB_VERT_COUNT = 8;

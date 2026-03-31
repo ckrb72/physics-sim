@@ -1,5 +1,4 @@
 #include "physics.h"
-#include <util/util.h>
 
 PhysicsBody::PhysicsBody(std::shared_ptr<PhysicsShape> shape, const PhysicsMaterial& material, double mass, PhysicsLayer layer)
 :shape(shape), mass(mass), transform(Eigen::Vector3d(0.0, 0.0, 0.0), Eigen::Quaterniond(1.0, 0.0, 0.0, 0.0)), layer(layer), material(material)
