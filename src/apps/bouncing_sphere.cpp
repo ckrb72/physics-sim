@@ -41,10 +41,10 @@ int main()
     std::shared_ptr<Geometry> plane = GeometryFactory::load_plane(10.0, 10.0);
 
     PhysicsWorld world;
-    int32_t sphere_body = world.create_body(std::make_shared<SphereShape>(1.0), PhysicsMaterial{ .restitution = 0.8f }, 100.0, PhysicsLayer::DYNAMIC);
-    int32_t bottom_plane_body = world.create_body(std::make_shared<PlaneShape>(Eigen::Vector3d(10.0, 10.0, 10.0)), Eigen::Vector3d(0.0, -3.0, 0.0), Eigen::Quaterniond(Eigen::AngleAxisd(0.0, Eigen::Vector3d(1.0, 0.0, 0.0))), 1.0, PhysicsLayer::STATIC);
-    int32_t testing_stuff = world.create_body(std::make_shared<PlaneShape>(Eigen::Vector3d(10.0, 10.0, 10.0)), Eigen::Vector3d(5.0, 2.0, 0.0), Eigen::Quaterniond(Eigen::AngleAxisd(DegreesToRadians(90.0), Eigen::Vector3d(0.0, 0.0, 1.0))), 1.0, PhysicsLayer::STATIC);
-    int32_t left_plane = world.create_body(std::make_shared<PlaneShape>(Eigen::Vector3d(10.0, 10.0, 10.0)), Eigen::Vector3d(-5.0, 2.0, 0.0), Eigen::Quaterniond(Eigen::AngleAxisd(DegreesToRadians(-90.0), Eigen::Vector3d(0.0, 0.0, 1.0))), 1.0, PhysicsLayer::STATIC);
+    int32_t sphere_body = world.create_body(PhysicsShape::MakeSphere(1.0), PhysicsMaterial{ .restitution = 0.8f }, 100.0, PhysicsLayer::DYNAMIC);
+    int32_t bottom_plane_body = world.create_body(PhysicsShape::MakePlane(Eigen::Vector3d(10.0, 10.0, 10.0)), Eigen::Vector3d(0.0, -3.0, 0.0), Eigen::Quaterniond(Eigen::AngleAxisd(0.0, Eigen::Vector3d(1.0, 0.0, 0.0))), 1.0, PhysicsLayer::STATIC);
+    int32_t testing_stuff = world.create_body(PhysicsShape::MakePlane(Eigen::Vector3d(10.0, 10.0, 10.0)), Eigen::Vector3d(5.0, 2.0, 0.0), Eigen::Quaterniond(Eigen::AngleAxisd(DegreesToRadians(90.0), Eigen::Vector3d(0.0, 0.0, 1.0))), 1.0, PhysicsLayer::STATIC);
+    int32_t left_plane = world.create_body(PhysicsShape::MakePlane(Eigen::Vector3d(10.0, 10.0, 10.0)), Eigen::Vector3d(-5.0, 2.0, 0.0), Eigen::Quaterniond(Eigen::AngleAxisd(DegreesToRadians(-90.0), Eigen::Vector3d(0.0, 0.0, 1.0))), 1.0, PhysicsLayer::STATIC);
     glfwSwapInterval(0);
 
     unsigned int program;
@@ -73,7 +73,8 @@ int main()
     double theta = 0.0, phi = 0.0;
 
     world.set_linear_velocity(sphere_body, Eigen::Vector3d(1.0f, 9.8f, 0.0f));
-    world.set_gravity(Eigen::Vector3d(0.0f, -9.8f, 0.0f));
+    // world.set_angular_velocity(sphere_body, Vector3(0.0, 2.0, 0.0));
+    world.set_gravity({ 0.0, 0.0, 0.0, 0.0, -9.8, 0.0});
 
 
     while(!glfwWindowShouldClose(window))
@@ -121,16 +122,13 @@ int main()
             glUseProgram(program);
             glUniformMatrix4fv(glGetUniformLocation(program, "view"), 1, GL_FALSE, glm::value_ptr(view));
 
+            // std::cout << world.get_world_matrix(sphere_body) << std::endl;
             sphere->draw(program, EigenMatrixToFloatArray(world.get_world_matrix(sphere_body)));
             plane->draw(program, EigenMatrixToFloatArray(world.get_world_matrix(bottom_plane_body)));
             plane->draw(program, EigenMatrixToFloatArray(world.get_world_matrix(testing_stuff)));
             plane->draw(program, EigenMatrixToFloatArray(world.get_world_matrix(left_plane)));
 
-            draw_ui(world.get_info(sphere_body));
-            ImGui::EndFrame();
-
-            ImGui::Render();
-            ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+            // draw_ui(world.get_info(sphere_body));
 
             glfwSwapBuffers(window);
  
@@ -191,4 +189,9 @@ void draw_ui(const BodyInfo& rb)
     ImGui::Spacing();
 
     ImGui::End();
+
+    ImGui::EndFrame();
+
+    ImGui::Render();
+    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }

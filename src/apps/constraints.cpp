@@ -19,8 +19,8 @@ int main()
     glClearColor(0.3, 0.3, 0.3, 1.0);
 
     PhysicsWorld world;
-    int32_t box_body = world.create_body(std::make_shared<OBBShape>(Eigen::Vector3d(0.125, 2.0, 0.125)), 10.0, PhysicsLayer::DYNAMIC);
-    int32_t weight_body = world.create_body(std::make_shared<OBBShape>(Eigen::Vector3d(0.5, 0.5, 0.5)), Eigen::Vector3d(0.0, -2.5, 0.0), Eigen::Quaterniond(Eigen::AngleAxis(0.0, Eigen::Vector3d(1.0, 0.0, 0.0))), 100.0, PhysicsLayer::DYNAMIC);
+    int32_t box_body = world.create_body(PhysicsShape::MakeOBB(Eigen::Vector3d(0.125, 2.0, 0.125)), 10.0, PhysicsLayer::DYNAMIC);
+    int32_t weight_body = world.create_body(PhysicsShape::MakeOBB(Eigen::Vector3d(0.5, 0.5, 0.5)), Eigen::Vector3d(0.0, -2.5, 0.0), Eigen::Quaterniond(Eigen::AngleAxis(0.0, Eigen::Vector3d(1.0, 0.0, 0.0))), 100.0, PhysicsLayer::DYNAMIC);
 
     std::shared_ptr<Geometry> box_mesh = GeometryFactory::load_rect(0.25f, 4.0f, 0.25f);
     std::shared_ptr<Geometry> weight_mesh = GeometryFactory::load_rect(1.0f, 1.0f, 1.0f);

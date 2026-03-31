@@ -23,28 +23,27 @@ int main()
                        0.0, 0.0, 0.0, 0.0, 0.0, mass;
 
     // Start with no rotation and position at (1, 0, 0)
-    Vector6d position;
+    Vector6 position;
     position << 0.0, 0.0, 0.0, 0.0, 0.0, 0.0;
 
     // Start with no velocity
-    Vector6d velocity;
+    Vector6 velocity;
     velocity << 0.0, 0.0, 0.0, 0.0, 0.0, 0.0;
 
     // Want a desired rotational acceleration of 1 unit across the x axis
-    Vector6d desired_acceleration;
+    Vector6 desired_acceleration;
     desired_acceleration << 1.0, 0.0, 0.0, 0.0, 0.0, 0.0;
 
     // Gravity is 9.8 m/s2 in the negative y direction
-    Vector6d gravity;
+    Vector6 gravity;
     gravity << 0.0, 0.0, 0.0, 0.0, -9.8 * mass, 0.0;
 
     RigidBodyState state = {
-        .position = position,
         .velocity = velocity,
         .spatial_inertia = spatial_inertia
     };
 
-    Vector6d forces = calculateInverseDynamics(state, desired_acceleration, gravity);
+    Vector6 forces = calculateInverseDynamics(state, desired_acceleration, gravity);
     std::cout << forces << std::endl;
 
     return 0;

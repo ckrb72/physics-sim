@@ -1,79 +1,77 @@
 #include "physics.h"
+#include "dynamics.h"
+#include <iostream>
 
 PhysicsWorld::PhysicsWorld()
 {
 
 }
 
-int32_t PhysicsWorld::create_body(std::shared_ptr<PhysicsShape> shape, double mass, PhysicsLayer layer)
+BodyId PhysicsWorld::create_body(const PhysicsShape& shape, Real mass, PhysicsLayer layer)
 {
-    int32_t id = bodies.size();
+    BodyId id = bodies.size();
     bodies.push_back(PhysicsBody(shape, mass, layer));
     return id;
 }
 
-int32_t PhysicsWorld::create_body(std::shared_ptr<PhysicsShape> shape, const Eigen::Vector3d& position, const Eigen::Quaterniond& orientation, double mass, PhysicsLayer layer)
+BodyId PhysicsWorld::create_body(const PhysicsShape& shape, const Vector3& position, const Quaternion& orientation, Real mass, PhysicsLayer layer)
 {
-    int32_t id = bodies.size();
+    BodyId id = bodies.size();
     bodies.push_back(PhysicsBody(shape, position, orientation, mass, layer));
     return id;
 }
 
-int32_t PhysicsWorld::create_body(std::shared_ptr<PhysicsShape> shape, const PhysicsMaterial& material, double mass, PhysicsLayer layer)
+BodyId PhysicsWorld::create_body(const PhysicsShape& shape, const PhysicsMaterial& material, Real mass, PhysicsLayer layer)
 {
-    int32_t id = bodies.size();
+    BodyId id = bodies.size();
     bodies.push_back(PhysicsBody(shape, material, mass, layer));
     return id;
 }
 
-int32_t PhysicsWorld::create_body(std::shared_ptr<PhysicsShape> shape, const PhysicsMaterial& material, const Eigen::Vector3d& position, const Eigen::Quaterniond& orientation, double mass, PhysicsLayer layer)
+BodyId PhysicsWorld::create_body(const PhysicsShape& shape, const PhysicsMaterial& material, const Vector3& position, const Quaternion& orientation, Real mass, PhysicsLayer layer)
 {
-    int32_t id = bodies.size();
+    BodyId id = bodies.size();
     bodies.push_back(PhysicsBody(shape, material, position, orientation, mass, layer));
     return id;
 }
 
-Eigen::Matrix4d PhysicsWorld::get_world_matrix(int32_t id)
+Matrix4 PhysicsWorld::get_world_matrix(BodyId id)
 {
     if (id < 0 || id > bodies.size() - 1) return {};
 
-    return bodies[id].get_world_matrix();
-}
-
-void PhysicsWorld::set_linear_velocity(int32_t id, const Eigen::Vector3d& v)
-{
-    if (id < 0 || id > bodies.size() - 1) return;
-
-    bodies[id].set_linear_velocity(v);
-}
-
-void PhysicsWorld::set_angular_velocity(int32_t id, const Eigen::Vector3d& omega)
-{
-    if (id < 0 || id > bodies.size() - 1) return;
-    bodies[id].set_angular_velocity(omega);
-}
-
-BodyInfo PhysicsWorld::get_info(int32_t id) const
-{
-    if (id < 0 || id > bodies.size()) return {};
     const PhysicsBody& body = bodies[id];
-    return BodyInfo{
-        .mass = body.mass,
-        .position = body.transform.position,
-        .orientation = body.transform.orientation,
-        .linear_momentum = body.linear_momentum,
-        .angular_momentum = body.angular_momentum,
-        .force = body.force,
-        .impulse = body.impulse,
-        .torque = body.torque,
-        .torque_impulse = body.torque_impulse
-    };
+
+    Affine3 mat = Affine3::Identity();
+    mat.translate(body.transform.position);
+    mat.rotate(body.transform.orientation);
+
+    return mat.matrix();
+}
+
+void PhysicsWorld::set_linear_velocity(BodyId id, const Vector3& v)
+{
+    if (id < 0 || id > bodies.size() - 1) return;
+
+    PhysicsBody& body = bodies[id];
+    body.velocity[3] = v[0];
+    body.velocity[4] = v[1];
+    body.velocity[5] = v[2];
+}
+
+void PhysicsWorld::set_angular_velocity(BodyId id, const Vector3& omega)
+{
+    if (id < 0 || id > bodies.size() - 1) return;
+    
+    PhysicsBody& body = bodies[id];
+    body.velocity[0] = omega[0];
+    body.velocity[1] = omega[1];
+    body.velocity[2] = omega[2];
 }
 
 CollisionResult PhysicsWorld::check_collision(PhysicsBody* a, PhysicsBody* b)
 {
     // Sort by shape type
-    if (a->shape->get_type() > b->shape->get_type())
+    if (a->shape.type > b->shape.type)
     {
         PhysicsBody* temp = a;
         a = b;
@@ -81,17 +79,14 @@ CollisionResult PhysicsWorld::check_collision(PhysicsBody* a, PhysicsBody* b)
     }
 
     // Call correct function depending on a and b's types
-    return collision_funcs[a->shape->get_type()][b->shape->get_type()](&(*a->shape), &a->transform, &(*b->shape), &b->transform); 
+    return collision_funcs[a->shape.type][b->shape.type](&a->shape, &a->transform, &b->shape, &b->transform); 
 }
 
 CollisionResult PhysicsWorld::check_sphere_sphere_collision(const PhysicsShape* const a, const Transform* const at, const PhysicsShape* const b, const Transform* const bt)
 {
-    const SphereShape* const a_sphere = (const SphereShape* const)a;
-    const SphereShape* const b_sphere = (const SphereShape* const)b;
+    Vector3 position_diff = bt->position - at->position;
 
-    Eigen::Vector3d position_diff = bt->position - at->position;
-
-    if ( std::abs(position_diff.norm()) < (a_sphere->r + b_sphere->r))
+    if ( std::abs(position_diff.norm()) < (a->sphere.radius + b->sphere.radius))
     {
         return CollisionResult {
             .colliding = true,
@@ -103,16 +98,13 @@ CollisionResult PhysicsWorld::check_sphere_sphere_collision(const PhysicsShape* 
 
 CollisionResult PhysicsWorld::check_sphere_plane_collision(const PhysicsShape* const sphere, const Transform* const sphere_transform, const PhysicsShape* const plane, const Transform* const plane_transform)
 {
-    SphereShape* s = (SphereShape*)sphere;
-    PlaneShape* p = (PlaneShape*)plane;
-
-    Eigen::Vector3d plane_norm = plane_transform->orientation * Eigen::Vector3d(0.0, 1.0, 0.0);
+    Vector3 plane_norm = plane_transform->orientation * Vector3(0.0, 1.0, 0.0);
     plane_norm.normalize();
 
     // Check collision using mathematical formula
-    double norm_projection = plane_norm.dot((sphere_transform->position - plane_transform->position)) / plane_norm.norm();
+    Real norm_projection = plane_norm.dot((sphere_transform->position - plane_transform->position)) / plane_norm.norm();
     
-    if (std::abs(norm_projection) < s->r)
+    if (std::abs(norm_projection) < sphere->sphere.radius)
     {
         return CollisionResult {
             .colliding = true,
@@ -144,16 +136,16 @@ CollisionResult PhysicsWorld::check_plane_obb_collision(const PhysicsShape* cons
 
 CollisionResult PhysicsWorld::check_obb_obb_collision(const PhysicsShape* const a, const Transform* const a_transform, const PhysicsShape* const b, const Transform* const b_transform)
 {
-    const OBBShape* const a_shape = (const OBBShape* const)a;
-    const OBBShape* const b_shape = (const OBBShape* const)b;
-
+    const OBBShape* a_shape = &a->obb;
+    const OBBShape* b_shape = &b->obb;
+    
     const float EPSILON = 1e-6f;
 
-    Eigen::Matrix3d a_axis = a_transform->orientation.toRotationMatrix();
-    Eigen::Matrix3d b_axis = b_transform->orientation.toRotationMatrix();
+    Matrix3 a_axis = a_transform->orientation.toRotationMatrix();
+    Matrix3 b_axis = b_transform->orientation.toRotationMatrix();
 
-    Eigen::Matrix3d rotation;
-    Eigen::Matrix3d abs_rotation;
+    Matrix3 rotation;
+    Matrix3 abs_rotation;
 
     // Compute rotation which represents the rotation of b in terms of a's coordinate space
     for (int i = 0; i < 3; i++)
@@ -166,8 +158,8 @@ CollisionResult PhysicsWorld::check_obb_obb_collision(const PhysicsShape* const 
     }
 
     // Get the translation of b from a's center and put it in terms of a's coordinate system
-    Eigen::Vector3d translation = b_transform->position - a_transform->position;
-    translation = Eigen::Vector3d(a_axis.col(0).dot(translation), a_axis.col(1).dot(translation), a_axis.col(2).dot(translation));
+    Vector3 translation = b_transform->position - a_transform->position;
+    translation = Vector3(a_axis.col(0).dot(translation), a_axis.col(1).dot(translation), a_axis.col(2).dot(translation));
 
     float ra, rb;
 
@@ -254,7 +246,7 @@ CollisionResult PhysicsWorld::check_obb_obb_collision(const PhysicsShape* const 
     };
 }
 
-bool PhysicsWorld::is_colliding(int32_t a, int32_t b)
+bool PhysicsWorld::is_colliding(BodyId a, BodyId b)
 {
     if (a == b) return false;
 
@@ -266,7 +258,7 @@ bool PhysicsWorld::is_colliding(int32_t a, int32_t b)
        
 
 // TODO: Make it so update runs multiple steps if delta > 1 / 60
-void PhysicsWorld::update(double delta)
+void PhysicsWorld::update(Real delta)
 {
     // Check body collisions and update forces appropriately
 
@@ -280,158 +272,59 @@ void PhysicsWorld::update(double delta)
             if (result.colliding) 
             {
                 result.norm.normalize();
-                Eigen::Vector3d reflected_vec = bodies[i].linear_momentum - 2.0f * bodies[i].linear_momentum.dot(result.norm) * result.norm;
-                bodies[i].linear_momentum = reflected_vec * (bodies[i].material.restitution + bodies[j].material.restitution) / 2.0f;
+                // Vector3 reflected_vec = bodies[i].linear_momentum - 2.0f * bodies[i].linear_momentum.dot(result.norm) * result.norm;
+                // bodies[i].linear_momentum = reflected_vec * (bodies[i].material.restitution + bodies[j].material.restitution) / 2.0f;
             }
 
         }
     }
 
-
     for (PhysicsBody& body : bodies)
     {
-        // Update body position
+        // Only update bodies that are dynamic (i.e. respond to physics events)
+        // Static stays still
+        // Kinematic moves along a predefined curve (like an animation) and doesn't have forces knock it off course
         if (body.layer == PhysicsLayer::DYNAMIC)
         {
- 
-            // Gravity = acceleration (-9.8) * mass
-            Eigen::Vector3d gravity = grav_acceleration;
-            gravity *= body.mass;
-            body.add_force(gravity);
+            Vector6 acceleration = calculateForwardDynamics({.velocity = body.velocity, .spatial_inertia = body.spatial_inertia}, grav_acceleration * body.mass);
 
-            // Move this outside of the physics body.
-            // Body shouldn't be responsible for stepping itself
-            body.step(delta); 
+            // Update velocity based on acceleration
+            body.velocity += acceleration * delta;
+
+            // Update position and orientation based on everything (convert angular velocity to quaternion)
+            body.transform.position += getLinearFromSpatial(body.velocity) * delta;
+
+            // Get the delta quaternion
+            Vector3 omega = getAngularFromSpatial(body.velocity);
+            Real omega_magnitude = omega.norm();
+            Quaternion delta_q = Quaternion(cos(omega_magnitude * delta / 2.0), omega.normalized() * sin(omega_magnitude * delta / 2.0));
+
+            // Update orientation based on delta_q
+            body.transform.orientation = delta_q * body.transform.orientation;
+            body.transform.orientation.normalize();
         }
     }
+
+
+    // for (PhysicsBody& body : bodies)
+    // {
+    //     // Update body position
+    //     if (body.layer == PhysicsLayer::DYNAMIC)
+    //     {
+ 
+    //         // Gravity = acceleration (-9.8) * mass
+    //         Vector3 gravity = grav_acceleration;
+    //         gravity *= body.mass;
+    //         body.add_force(gravity);
+
+    //         // Move this outside of the physics body.
+    //         // Body shouldn't be responsible for stepping itself
+    //         body.step(delta); 
+    //     }
+    // }
 }
 
-void PhysicsWorld::set_gravity(const Eigen::Vector3d& grav)
+void PhysicsWorld::set_gravity(const Vector6& grav)
 {
     this->grav_acceleration = grav;
 }
-
-
-
-
-
-// // Computes Force and Torque over time t and places them in rb
-// // This actually technically calculates the impulse and impulsive torque OVER the time t,
-// // not the force and torque AT time t.
-// void compute_force_and_torque(double t, RigidBody& rb)
-// {
-//     // Compute force and torque from impulses
-//     Eigen::Vector3d force = Eigen::Vector3d(0.0, 0.0, 0.0);
-//     Eigen::Vector3d torque = Eigen::Vector3d(0.0, 0.0, 0.0);
-
-
-//     /*int impulse_count = impulses.size();
-
-//     for (int i = 0; i < impulse_count; i++)
-//     {
-//         Impulse& impulse = impulses.front();
-//         impulses.pop();
-
-//         Eigen::Vector3d j = impulse.force;
-//         double time;
-
-//         // Time is either the delta of the frame (t) or the time remaining on the impulse (impulse.time)
-//         if (t <= impulse.time) time = t;
-//         else time = impulse.time;
-
-//         j *= time;
-
-//         force += j;
-//         torque += glm::cross((impulse.pos - rb.x), j);
-
-//         impulse.time -= time;
-
-//         if (impulse.time > 0.0) impulses.push(impulse);
-//     }*/
-
-
-//     // Add constant forces
-//     // Gravity
-//     Eigen::Vector3d gravity = Eigen::Vector3d(0.0, 0.0, 0.0);
-//     gravity *= t;
-//     force += gravity;
-
-//     Eigen::Vector3d inst_torque = Eigen::Vector3d(0.0, 0.0, 0.0);
-//     inst_torque *= t;
-//     torque += inst_torque;
-    
-//     // These are actually technically impulse and impulsive torque since we are multiplying by time
-//     // But it doesn't really matter as long as we are consistent
-//     rb.force = force;
-
-//     rb.torque = torque;
-//     rb.torque *= t;
-// }
-
-// // TODO: Have dydt place the force and torque (and other per frame variables) into their own struct and return it (makes no sense to place it in RigidBody if it is per frame)
-
-// // Takes a and transforms it into a_star
-// void vec_to_mat_star(Eigen::Vector3d a, Eigen::Matrix3d& a_star)
-// {
-//     //TODO: Check to make sure this is okay
-//     a_star(0, 0) = 0.0;
-//     a_star(0, 1) = -a.z();
-//     a_star(0, 2) = a.y();
-
-//     a_star(1, 0) = a.z();
-//     a_star(1, 1) = 0.0;
-//     a_star(1, 2) = -a.x();
-
-//     a_star(2, 0) = -a.y();
-//     a_star(2, 1) = a.x();
-//     a_star(2, 2) = 0.0;
-// }
-
-// // Computes instantaneous changes of rb at time t and places the data into dydt
-// void dydt(double t, RigidBody& rb)
-// {
-//     // Compute Velocity
-//     rb.v.x() = rb.P.x() / rb.mass;
-//     rb.v.y() = rb.P.y() / rb.mass;
-//     rb.v.z() = rb.P.z() / rb.mass;
-//     rb.v *= t;      // Scale by time
-    
-//     rb.q.normalize();
-//     rb.R = rb.q.toRotationMatrix();
-
-   
-//     // Compute inverse Inertia tensor
-//     rb.Iinv = rb.R * rb.IbodyInv * rb.R.transpose().eval();
-
-//     // Compute angular velocity
-//     rb.omega = rb.Iinv * rb.L;
-
-//     compute_force_and_torque(t, rb);
-
-//     // Compute qdot (Instantaneous rate of change of orientation encoded in quaternion)
-//     Eigen::Quaterniond omega_q = Eigen::Quaterniond(0.0f, rb.omega);
-//     rb.qdot = (omega_q * rb.q);
-//     rb.qdot.coeffs() *= 0.5;
-//     rb.qdot.coeffs() *= t;
-// }
-
-// // TODO: add logic to handle the case that delta is too large (split the integration into multiple steps);
-// void ode(RigidBody& rb, double delta)
-// {
-//     // Compute derivatives
-//     dydt(delta, rb);
-
-//     // TOOD: Might want to rename these fields to impulse and impulsive torque since that makes more sense
-//     // Add force (technically impulse) to linear momentum
-//     rb.P += rb.force;
-
-//     // Add torque (technically impulsive torque) to angular momentum
-//     rb.L += rb.torque;
-
-//     // Compute new position and orientation
-//     rb.x += rb.v;
-
-//     // FIXME: This might be wrong
-//     rb.q.coeffs() = rb.qdot.coeffs() + (0.5f * rb.q.coeffs());
-//     rb.q.normalize();
-// }

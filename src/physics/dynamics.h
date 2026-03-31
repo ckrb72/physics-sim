@@ -3,10 +3,12 @@
 
 struct RigidBodyState
 {
-    Vector6d position;
-    Vector6d velocity;
-    Eigen::Matrix<double, 6, 6> spatial_inertia;
+    Vector6 velocity;
+    Eigen::Matrix<Real, 6, 6> spatial_inertia;
 };  
 
-Vector6d calculateInverseDynamics(const RigidBodyState& rb, const Vector6d& desiredAcceleration, const Vector6d& externalAcceleration);
-Vector6d calculateForwardDynamics(const RigidBodyState& rb, const Vector6d& externalForces);
+Vector6 calculateInverseDynamics(const RigidBodyState& rb, const Vector6& desiredAcceleration, const Vector6& externalAcceleration);
+Vector6 calculateForwardDynamics(const RigidBodyState& rb, const Vector6& externalForces);
+
+Vector3 getLinearFromSpatial(const Vector6& spatial);
+Vector3 getAngularFromSpatial(const Vector6& spatial);

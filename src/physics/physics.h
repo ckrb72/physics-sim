@@ -5,18 +5,37 @@
 #include <Eigen/Dense>
 #include <cmath>
 
-using Vector6d = Eigen::Matrix<double, 6, 1>;
+#define PRECISION_HIGH
+
+#ifdef PRECISION_HIGH
+    using Real = double;
+    using Vector3 = Eigen::Vector3d;
+    using Quaternion = Eigen::Quaterniond;
+    using Matrix4 = Eigen::Matrix4d;
+    using Matrix3 = Eigen::Matrix3d;
+    using Affine3 = Eigen::Affine3d;
+#else
+    using Real = float;
+    using Vector3 = Eigen::Vector3f;
+    using Quaternion = Eigen::Quaternionf;
+    using Matrix4 = Eigen::Matrix4f;
+    using Matrix3 = Eigen::Matrix3f;
+    using Affine3 = Eigen::Affine3f;
+#endif
+
+using Vector6 = Eigen::Matrix<Real, 6, 1>;
+using BodyId = int32_t;
 
 
-inline double DegreesToRadians(double degrees)
+inline Real DegreesToRadians(Real degrees)
 {
     return degrees * (M_PI / 180.0);
 }
 
-inline std::array<float, 16> EigenMatrixToFloatArray(const Eigen::Matrix4d& mat)
+inline std::array<float, 16> EigenMatrixToFloatArray(const Matrix4& mat)
 {
     std::array<float, 16> array = {};
-    const double* mat_data = mat.data();
+    const Real* mat_data = mat.data();
     for (int i = 0; i < 16; i++)
     {
         array[i] = static_cast<float>(mat_data[i]);
@@ -28,8 +47,8 @@ inline std::array<float, 16> EigenMatrixToFloatArray(const Eigen::Matrix4d& mat)
 
 struct AABBox
 {
-    Eigen::Vector3d half_extents;
-    Eigen::Vector3d position;
+    Vector3 half_extents;
+    Vector3 position;
 };
 
 enum ShapeType
@@ -43,88 +62,41 @@ enum ShapeType
 
 struct PhysicsMaterial
 {
-    float restitution = 1.0f;
+    Real restitution = 1.0f;
 };
 
-// struct SphereShape
-// {
-//     float radius;
-// };
-
-// struct PlaneShape
-// {
-//     Eigen::Vector3d extent;
-// };
-
-// struct OBBShape
-// {
-//     Eigen::Vector3d half_extent;
-// };
-
-// struct PhysicsShape
-// {
-//     ShapeType type;
-
-//     // In a real engine would want to make each of these into an array and just have an index
-//     union {
-//         SphereShape sphere,
-//         PlaneShape plane,
-//         OBBShape obb
-//     };
-// };
-
-// Eigen::Matrix<6, 6, double> GetSpatialInertia(const PhysicsShape& shape, double mass);
-
-// Change this up completely...
-// Make these just be a tag essentially that tells what type of shape it is
-// Then have a method that gets the data for that specific shape and have the actual
-// collision detector do all of the work with the collision stuff by passing the data into a function or something.
-class PhysicsShape
+struct SphereShape
 {
-    protected:
-        ShapeType type = ShapeType::SHAPE;
-
-    public:
-        virtual Eigen::Matrix3d get_body_mat(double mass) = 0;
-        virtual AABBox get_aabb() = 0;
-        //virtual std::vector<uint8_t> get_data() = 0;
-        inline ShapeType get_type() const { return type; }
+    Real radius;
 };
 
-//Maybe make a distinction between collision shapes and physics shapes???
-//Physics shapes would have inertia tensor while collision shape would just have collision detection stuff
-
-// The origin of this sphere is in "body space" so it will always be 0, 0, 0. In the physics body it is attached to the position will change
-class SphereShape : public PhysicsShape
+struct PlaneShape
 {
-    public:
-        double r;
-
-        SphereShape(double radius);
-        Eigen::Matrix3d get_body_mat(double mass) override;
-        AABBox get_aabb() override;
+    Vector3 extent;
 };
 
-// The point used for this plane is in "body space" so it will always be 0, 0, 0. In the physics body it is attached to the position will change
-class PlaneShape : public PhysicsShape
+struct OBBShape
 {
-    public:
-        Eigen::Vector3d extent;
-
-        PlaneShape(const Eigen::Vector3d& extent);
-        Eigen::Matrix3d get_body_mat(double mass) override;
-        AABBox get_aabb() override;
+    Vector3 half_extent;
 };
 
-class OBBShape : public PhysicsShape
+struct PhysicsShape
 {
-    public:
-        Eigen::Vector3d half_extent;
+    ShapeType type;
 
-        OBBShape(const Eigen::Vector3d& half_extent);
-        Eigen::Matrix3d get_body_mat(double mass) override;
-        AABBox get_aabb() override;
+    // In a real engine would want to make each of these into an array and just have an index
+    union {
+        SphereShape sphere;
+        PlaneShape plane;
+        OBBShape obb;
+    };
+
+    static PhysicsShape MakeSphere(Real radius);
+    static PhysicsShape MakePlane(const Vector3& extent);
+    static PhysicsShape MakeOBB(const Vector3& half_extent);
 };
+
+Eigen::Matrix<Real, 6, 6> GetSpatialInertia(const PhysicsShape& shape, Real mass);
 
 enum PhysicsLayer
 {
@@ -135,101 +107,85 @@ enum PhysicsLayer
 
 struct Transform
 {
-    Eigen::Vector3d position = Eigen::Vector3d(0.0, 0.0, 0.0);
-    Eigen::Quaterniond orientation = Eigen::Quaterniond(1.0, 0.0, 0.0, 0.0);
+    Vector3 position = Vector3(0.0, 0.0, 0.0);
+    Quaternion orientation = Quaternion(1.0, 0.0, 0.0, 0.0);
 };
 
 
 class PhysicsBody
 {
     private:
-        double mass = 0.0;
-        Eigen::Matrix3d Ibody = Eigen::Matrix3d::Identity();
-        Eigen::Matrix3d IbodyInv = Eigen::Matrix3d::Identity();
-        std::shared_ptr<PhysicsShape> shape = nullptr;
-
+        Real mass = 0.0;
+        PhysicsShape shape;
+        Eigen::Matrix<Real, 6, 6> spatial_inertia = {};
+        Vector6 velocity = {};
         Transform transform;
 
-        Eigen::Vector3d linear_momentum = Eigen::Vector3d(0.0, 0.0, 0.0);
-        Eigen::Vector3d angular_momentum = Eigen::Vector3d(0.0, 0.0, 0.0);
+        // Add to this each frame to apply forces to the object (converted to a spatial force vector for the forward dynamics pass)
+        Vector3 force = Vector3(0.0, 0.0, 0.0);
+        Vector3 torque = Vector3(0.0, 0.0, 0.0);
 
-        // Units: N (kgm / s)
-        // Multiplied by delta then added to momentum
-        Eigen::Vector3d force = Eigen::Vector3d(0.0, 0.0, 0.0);
+        // Vector3 linear_momentum = Vector3(0.0, 0.0, 0.0);
+        // Vector3 angular_momentum = Vector3(0.0, 0.0, 0.0);
 
-        // Units: Ns (kgm)
-        // Added to momentum directly
-        Eigen::Vector3d impulse = Eigen::Vector3d(0.0, 0.0, 0.0);
+        // // Units: N (kgm / s)
+        // // Multiplied by delta then added to momentum
+        // Vector3 force = Vector3(0.0, 0.0, 0.0);
 
-        // Units: Nm (kgm^2 / s)
-        // Multiplied by delta then added to angular momentum
-        Eigen::Vector3d torque = Eigen::Vector3d(0.0, 0.0, 0.0);
+        // // Units: Ns (kgm)
+        // // Added to momentum directly
+        // Vector3 impulse = Vector3(0.0, 0.0, 0.0);
 
-        // Units: Nms (kgm^2)
-        // Added to angular momentum directly
-        Eigen::Vector3d torque_impulse = Eigen::Vector3d(0.0, 0.0, 0.0);
+        // // Units: Nm (kgm^2 / s)
+        // // Multiplied by delta then added to angular momentum
+        // Vector3 torque = Vector3(0.0, 0.0, 0.0);
+
+        // // Units: Nms (kgm^2)
+        // // Added to angular momentum directly
+        // Vector3 torque_impulse = Vector3(0.0, 0.0, 0.0);
 
         PhysicsLayer layer = PhysicsLayer::STATIC;
+        PhysicsMaterial material;
 
         friend class PhysicsWorld;
 
-        PhysicsMaterial material;
+        PhysicsBody(const PhysicsShape& shape, const PhysicsMaterial& material, Real mass, PhysicsLayer layer);
+        PhysicsBody(const PhysicsShape& shape, const PhysicsMaterial& material, const Vector3& position, const Quaternion& orientation, Real mass, PhysicsLayer layer);
+        PhysicsBody(const PhysicsShape& shape, Real mass, PhysicsLayer layer);
+        PhysicsBody(const PhysicsShape& shape, const Vector3& position, const Quaternion& orientation, Real mass, PhysicsLayer layer);
 
     public:
         PhysicsBody() = delete;
-        PhysicsBody(std::shared_ptr<PhysicsShape> shape, const PhysicsMaterial& material, double mass, PhysicsLayer layer);
-        PhysicsBody(std::shared_ptr<PhysicsShape> shape, const PhysicsMaterial& material, const Eigen::Vector3d& position, const Eigen::Quaterniond& orientation, double mass, PhysicsLayer layer);
-        PhysicsBody(std::shared_ptr<PhysicsShape> shape, double mass, PhysicsLayer layer);
-        PhysicsBody(std::shared_ptr<PhysicsShape> shape, const Eigen::Vector3d& position, const Eigen::Quaterniond& orientation, double mass, PhysicsLayer layer);
-        
-        const Eigen::Vector3d& get_position() const;
-        const Eigen::Quaterniond& get_orientation() const;
-        Eigen::Matrix4d get_world_matrix() const;
-
-        void set_linear_velocity(const Eigen::Vector3d& v);
-        void set_angular_velocity(const Eigen::Vector3d& omega);
-        void set_position(const Eigen::Vector3d& pos);
-        void set_orientation(const Eigen::Quaterniond& orientation);
-
-        void add_force(const Eigen::Vector3d& force);
-        void add_force(const Eigen::Vector3d& force, const Eigen::Vector3d& pos);
-        void add_torque(const Eigen::Vector3d& torque);
-
-        // Creates an instantaneous change in velocity (either linear or angular depending on the function used)
-        void add_impulse(const Eigen::Vector3d& impulse);
-        void add_torque_impulse(const Eigen::Vector3d& torque_impulse);
-
-        void step(double delta);
 };
 
 struct BodyInfo
 {
-    double mass = 0.0;
-    Eigen::Vector3d position = Eigen::Vector3d(0.0, 0.0, 0.0);
-    Eigen::Quaterniond orientation = Eigen::Quaterniond(1.0, 0.0, 0.0, 0.0);
+    Real mass = 0.0;
+    Vector3 position = Vector3(0.0, 0.0, 0.0);
+    Quaternion orientation = Quaternion(1.0, 0.0, 0.0, 0.0);
 
-    Eigen::Vector3d linear_momentum = Eigen::Vector3d(0.0, 0.0, 0.0);
-    Eigen::Vector3d angular_momentum = Eigen::Vector3d(0.0, 0.0, 0.0);
+    Vector3 linear_momentum = Vector3(0.0, 0.0, 0.0);
+    Vector3 angular_momentum = Vector3(0.0, 0.0, 0.0);
 
-    Eigen::Vector3d force = Eigen::Vector3d(0.0, 0.0, 0.0);
-    Eigen::Vector3d impulse = Eigen::Vector3d(0.0, 0.0, 0.0);
-    Eigen::Vector3d torque = Eigen::Vector3d(0.0, 0.0, 0.0);
-    Eigen::Vector3d torque_impulse = Eigen::Vector3d(0.0, 0.0, 0.0);
+    Vector3 force = Vector3(0.0, 0.0, 0.0);
+    Vector3 impulse = Vector3(0.0, 0.0, 0.0);
+    Vector3 torque = Vector3(0.0, 0.0, 0.0);
+    Vector3 torque_impulse = Vector3(0.0, 0.0, 0.0);
 };
 
 
 struct CollisionResult
 {
     bool colliding = false;
-    Eigen::Vector3d norm = Eigen::Vector3d(0.0, 0.0, 0.0);
-    double depth = 0.0;
+    Vector3 norm = Vector3(0.0, 0.0, 0.0);
+    Real depth = 0.0;
 };
 
 class PhysicsWorld
 {
     private:
         std::vector<PhysicsBody> bodies;
-        Eigen::Vector3d grav_acceleration = Eigen::Vector3d(0.0, 0.0, 0.0);
+        Vector6 grav_acceleration = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
 
         static CollisionResult check_sphere_sphere_collision(const PhysicsShape* const a, const Transform* const at, const PhysicsShape* const b, const Transform* const bt);
         static CollisionResult check_sphere_plane_collision(const PhysicsShape* const sphere, const Transform* sphere_transform, const PhysicsShape* const plane, const Transform* const plane_transform);
@@ -259,23 +215,25 @@ class PhysicsWorld
 
     public:
         PhysicsWorld();
-        int32_t create_body(std::shared_ptr<PhysicsShape> shape, double mass, PhysicsLayer layer);
-        int32_t create_body(std::shared_ptr<PhysicsShape> shape, const Eigen::Vector3d& position, const Eigen::Quaterniond& orientation, double mass, PhysicsLayer layer);
-        int32_t create_body(std::shared_ptr<PhysicsShape> shape, const PhysicsMaterial& material, double mass, PhysicsLayer layer);
-        int32_t create_body(std::shared_ptr<PhysicsShape> shape, const PhysicsMaterial& material, const Eigen::Vector3d& position, const Eigen::Quaterniond& orientation, double mass, PhysicsLayer layer);
-        void remove(int32_t id);
+        BodyId create_body(const PhysicsShape& shape, Real mass, PhysicsLayer layer);
+        BodyId create_body(const PhysicsShape& shape, const Vector3& position, const Quaternion& orientation, Real mass, PhysicsLayer layer);
+        BodyId create_body(const PhysicsShape& shape, const PhysicsMaterial& material, Real mass, PhysicsLayer layer);
+        BodyId create_body(const PhysicsShape& shape, const PhysicsMaterial& material, const Vector3& position, const Quaternion& orientation, Real mass, PhysicsLayer layer);
+        void remove(BodyId id);
 
         // Body manipulation functions
-        void set_linear_velocity(int32_t id, const Eigen::Vector3d& v);
-        void set_angular_velocity(int32_t id, const Eigen::Vector3d& omega);
-        Eigen::Matrix4d get_world_matrix(int32_t id);
+        void set_linear_velocity(BodyId id, const Vector3& v);
+        void set_angular_velocity(BodyId id, const Vector3& omega);
+        Matrix4 get_world_matrix(BodyId id);
 
-        bool is_colliding(int32_t a, int32_t b);
+        bool is_colliding(BodyId a, BodyId b);
 
-        void set_gravity(const Eigen::Vector3d& grav);
+        void set_gravity(const Vector6& grav);
 
-        BodyInfo get_info(int32_t id) const;
+        BodyInfo get_info(BodyId id) const;
+
+        void set_time_step(Real duration);
 
         // TODO: Updates with 1 / 60 second granularity. If delta > 1 / 60 the integration step is done multiple times
-        void update(double delta);  // This is where the integration actually occurs
+        void update(Real delta);  // This is where the integration actually occurs
 };

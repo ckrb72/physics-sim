@@ -4,10 +4,10 @@
 // will eventually want to pass in a whole kinematic tree with joints but for now just focus on a single body
 // Returns the necessary force for the given inputs
 
-static Vector6d forceCrossProduct(const Vector6d& a, const Vector6d& b)
+static Vector6 forceCrossProduct(const Vector6& a, const Vector6& b)
 {
 
-    Vector6d product;
+    Vector6 product;
     product << a[1] * b[2] - a[2] * b[1] + a[4] * b[5] - a[5] * b[4],
                a[2] * b[0] - a[0] * b[2] + a[5] * b[3] - a[3] * b[5],
                a[0] * b[1] - a[1] * b[0] + a[3] * b[4] - a[4] * b[3],
@@ -18,7 +18,7 @@ static Vector6d forceCrossProduct(const Vector6d& a, const Vector6d& b)
     return product;
 }
 
-Vector6d calculateInverseDynamics(const RigidBodyState& rb, const Vector6d& desiredAcceleration, const Vector6d& externalAcceleration)
+Vector6 calculateInverseDynamics(const RigidBodyState& rb, const Vector6& desiredAcceleration, const Vector6& externalAcceleration)
 {
 
     // For now parent velocity and acceleration are 0
@@ -53,15 +53,25 @@ Vector6d calculateInverseDynamics(const RigidBodyState& rb, const Vector6d& desi
             // Add the converted force to the parent's currently calculated force
 
             // Project the force along the joint axis
-    Vector6d iv = rb.spatial_inertia * rb.velocity;
-    Vector6d result = rb.spatial_inertia * (desiredAcceleration - externalAcceleration) + forceCrossProduct(rb.velocity, iv);
+    Vector6 iv = rb.spatial_inertia * rb.velocity;
+    Vector6 result = rb.spatial_inertia * (desiredAcceleration - externalAcceleration) + forceCrossProduct(rb.velocity, iv);
 
     // Won't actually return anything as everything will be stored in the rigid bodies
     return result;
 }
 
 
-Vector6d calculateForwardDynamics(const RigidBodyState& rb, const Vector6d& externalForces)
+Vector6 calculateForwardDynamics(const RigidBodyState& rb, const Vector6& externalForces)
 {
     return rb.spatial_inertia.inverse() * (externalForces - forceCrossProduct(rb.velocity, rb.spatial_inertia * rb.velocity));
+}
+
+Vector3 getLinearFromSpatial(const Vector6& spatial)
+{
+    return Vector3(spatial[3], spatial[4], spatial[5]);
+}
+
+Vector3 getAngularFromSpatial(const Vector6& spatial)
+{
+    return Vector3(spatial[0], spatial[1], spatial[2]);
 }
