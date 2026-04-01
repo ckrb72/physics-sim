@@ -31,25 +31,21 @@ int main()
     GLFWwindow* window = init_window(WIN_WIDTH, WIN_HEIGHT, "Bouncing Ball");
     glfwSetScrollCallback(window, scroll_callback);
 
-    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-
     std::shared_ptr<Geometry> sphere = GeometryFactory::load_sphere(1.0, 3);
     std::shared_ptr<Geometry> plane = GeometryFactory::load_plane(10.0, 10.0);
     std::shared_ptr<Geometry> cube = GeometryFactory::load_rect(1.0, 1.0, 1.0);
 
     PhysicsWorld world;
-    int32_t sphere_body = world.create_body(PhysicsShape::MakeSphere(1.0), PhysicsMaterial{ .restitution = 0.8f }, 100.0, PhysicsLayer::DYNAMIC);
-    int32_t cube_body = world.create_body(PhysicsShape::MakeOBB(Vector3(0.5, 0.5, 0.5)), Vector3(-1.0, 0.0, 0.0), 1.0, PhysicsLayer::DYNAMIC);
-    int32_t bottom_plane_body = world.create_body(PhysicsShape::MakePlane(Eigen::Vector3d(10.0, 10.0, 10.0)), Eigen::Vector3d(0.0, -3.0, 0.0), Eigen::Quaterniond(Eigen::AngleAxisd(0.0, Eigen::Vector3d(1.0, 0.0, 0.0))), 1.0, PhysicsLayer::STATIC);
-    int32_t testing_stuff = world.create_body(PhysicsShape::MakePlane(Eigen::Vector3d(10.0, 10.0, 10.0)), Eigen::Vector3d(5.0, 2.0, 0.0), Eigen::Quaterniond(Eigen::AngleAxisd(DegreesToRadians(90.0), Eigen::Vector3d(0.0, 0.0, 1.0))), 1.0, PhysicsLayer::STATIC);
-    int32_t left_plane = world.create_body(PhysicsShape::MakePlane(Eigen::Vector3d(10.0, 10.0, 10.0)), Eigen::Vector3d(-5.0, 2.0, 0.0), Eigen::Quaterniond(Eigen::AngleAxisd(DegreesToRadians(-90.0), Eigen::Vector3d(0.0, 0.0, 1.0))), 1.0, PhysicsLayer::STATIC);
-    glfwSwapInterval(0);
+    BodyId sphere_body = world.create_body(PhysicsShape::MakeSphere(1.0), PhysicsMaterial{ .restitution = 0.8f }, Vector3(1.0, 0.0, 0.0), 100.0, PhysicsLayer::DYNAMIC);
+    BodyId cube_body = world.create_body(PhysicsShape::MakeOBB(Vector3(0.5, 0.5, 0.5)), Vector3(-1.0, 0.0, 0.0), 1.0, PhysicsLayer::DYNAMIC);
+    BodyId bottom_plane_body = world.create_body(PhysicsShape::MakePlane(Eigen::Vector3d(10.0, 10.0, 10.0)), Eigen::Vector3d(0.0, -3.0, 0.0), Eigen::Quaterniond(Eigen::AngleAxisd(0.0, Eigen::Vector3d(1.0, 0.0, 0.0))), 1.0, PhysicsLayer::STATIC);
+    BodyId testing_stuff = world.create_body(PhysicsShape::MakePlane(Eigen::Vector3d(10.0, 10.0, 10.0)), Eigen::Vector3d(5.0, 2.0, 0.0), Eigen::Quaterniond(Eigen::AngleAxisd(DegreesToRadians(90.0), Eigen::Vector3d(0.0, 0.0, 1.0))), 1.0, PhysicsLayer::STATIC);
+    BodyId left_plane = world.create_body(PhysicsShape::MakePlane(Eigen::Vector3d(10.0, 10.0, 10.0)), Eigen::Vector3d(-5.0, 2.0, 0.0), Eigen::Quaterniond(Eigen::AngleAxisd(DegreesToRadians(-90.0), Eigen::Vector3d(0.0, 0.0, 1.0))), 1.0, PhysicsLayer::STATIC);
 
     unsigned int program;
     if(!load_shader("../shader/default.vert", "../shader/default.frag", &program))
     {
         std::cout << "Failed to load shader" << std::endl;
-
         exit(EXIT_FAILURE);
     }
 

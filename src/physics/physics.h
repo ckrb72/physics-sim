@@ -165,6 +165,9 @@ class PhysicsWorld
         std::vector<PhysicsBody> bodies;
         Vector6 grav_acceleration = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
 
+        // For all plane collision algorithms, they just assume the plane is infinite for now
+        // Time permitting: take into account plane extents
+
         static CollisionResult check_sphere_sphere_collision(const PhysicsShape* const a, const Transform* const at, const PhysicsShape* const b, const Transform* const bt);
         static CollisionResult check_sphere_plane_collision(const PhysicsShape* const sphere, const Transform* sphere_transform, const PhysicsShape* const plane, const Transform* const plane_transform);
         static CollisionResult check_sphere_box_collision(const PhysicsShape* const sphere, const Transform* const sphere_transform, const PhysicsShape* const box, const Transform* const box_transform);
@@ -192,13 +195,14 @@ class PhysicsWorld
         };
 
     public:
-        PhysicsWorld();
+        PhysicsWorld() {}
         BodyId create_body(const PhysicsShape& shape, Real mass, PhysicsLayer layer);
         BodyId create_body(const PhysicsShape& shape, const Vector3& position, Real mass, PhysicsLayer layer);
         BodyId create_body(const PhysicsShape& shape, const Vector3& position, const Quaternion& orientation, Real mass, PhysicsLayer layer);
         BodyId create_body(const PhysicsShape& shape, const PhysicsMaterial& material, Real mass, PhysicsLayer layer);
+        BodyId create_body(const PhysicsShape& shape, const PhysicsMaterial& material, const Vector3& position, Real mass, PhysicsLayer layer);
         BodyId create_body(const PhysicsShape& shape, const PhysicsMaterial& material, const Vector3& position, const Quaternion& orientation, Real mass, PhysicsLayer layer);
-        void remove(BodyId id);
+        // void remove(BodyId id);
 
         // Body manipulation functions
         void set_linear_velocity(BodyId id, const Vector3& v);
@@ -213,7 +217,7 @@ class PhysicsWorld
 
         BodyInfo get_info(BodyId id) const;
 
-        void set_time_step(Real duration);
+        // void set_time_step(Real duration);
 
         // TODO: Updates with 1 / 60 second granularity. If delta > 1 / 60 the integration step is done multiple times
         void update(Real delta);  // This is where the integration actually occurs
