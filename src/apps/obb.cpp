@@ -24,11 +24,11 @@ int main()
 
     std::shared_ptr<Geometry> box_shape = GeometryFactory::load_rect(2.0f, 2.0f, 2.0f);
     int32_t box_a_body = world.create_body(PhysicsShape::MakeOBB(Vector3(1.0f, 1.0f, 1.0f)), Vector3(-5.0f, 0.0f, 0.0f), Quaternion(Eigen::AngleAxisd(DegreesToRadians(45.0), Eigen::Vector3d(0.0, 0.0, 1.0))), 100.0, PhysicsLayer::DYNAMIC);
-    // world.set_linear_velocity(box_a_body, Vector3(1.0f, 0.0f, 0.0f));
-    world.set_angular_velocity(box_a_body, Vector3(0.0f, 1.0f, 1.0f));
-    int32_t box_b_body = world.create_body(PhysicsShape::MakeOBB(Vector3(1.0f, 1.0f, 1.0f)), Vector3(5.0f, 0.0f, 0.0f), Eigen::Quaterniond::Identity(), 100.0, PhysicsLayer::DYNAMIC);
-    // world.set_linear_velocity(box_b_body, Vector3(-1.0f, 0.0f, 0.0f));
-    world.set_angular_velocity(box_b_body, Vector3(1.0f, 0.0f, 1.0f));
+    world.set_linear_velocity(box_a_body, Vector3(1.0f, 0.0f, 0.0f));
+    world.set_angular_velocity(box_a_body, Vector3(0.0f, 1.0f, 0.0f));
+    int32_t box_b_body = world.create_body(PhysicsShape::MakeOBB(Vector3(1.0f, 1.0f, 1.0f)), Vector3(5.0f, 0.0f, 0.0f), Quaternion::Identity(), 100.0, PhysicsLayer::DYNAMIC);
+    world.set_linear_velocity(box_b_body, Vector3(-1.0f, 0.0f, 0.0f));
+    world.set_angular_velocity(box_b_body, Vector3(0.0f, 1.0f, 0.0f));
 
     unsigned int program;
     if(!load_shader("../shader/collision_view.vert", "../shader/collision_view.frag", &program))

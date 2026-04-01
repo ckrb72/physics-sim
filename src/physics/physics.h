@@ -125,25 +125,6 @@ class PhysicsBody
         Vector3 force = Vector3(0.0, 0.0, 0.0);
         Vector3 torque = Vector3(0.0, 0.0, 0.0);
 
-        // Vector3 linear_momentum = Vector3(0.0, 0.0, 0.0);
-        // Vector3 angular_momentum = Vector3(0.0, 0.0, 0.0);
-
-        // // Units: N (kgm / s)
-        // // Multiplied by delta then added to momentum
-        // Vector3 force = Vector3(0.0, 0.0, 0.0);
-
-        // // Units: Ns (kgm)
-        // // Added to momentum directly
-        // Vector3 impulse = Vector3(0.0, 0.0, 0.0);
-
-        // // Units: Nm (kgm^2 / s)
-        // // Multiplied by delta then added to angular momentum
-        // Vector3 torque = Vector3(0.0, 0.0, 0.0);
-
-        // // Units: Nms (kgm^2)
-        // // Added to angular momentum directly
-        // Vector3 torque_impulse = Vector3(0.0, 0.0, 0.0);
-
         PhysicsLayer layer = PhysicsLayer::STATIC;
         PhysicsMaterial material;
 

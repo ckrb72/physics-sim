@@ -53,9 +53,7 @@ void PhysicsWorld::set_linear_velocity(BodyId id, const Vector3& v)
     if (id < 0 || id > bodies.size() - 1) return;
 
     PhysicsBody& body = bodies[id];
-    body.velocity[3] = v[0];
-    body.velocity[4] = v[1];
-    body.velocity[5] = v[2];
+    body.velocity.segment<3>(3) = body.transform.orientation.inverse() * v;
 }
 
 void PhysicsWorld::set_angular_velocity(BodyId id, const Vector3& omega)
@@ -63,9 +61,7 @@ void PhysicsWorld::set_angular_velocity(BodyId id, const Vector3& omega)
     if (id < 0 || id > bodies.size() - 1) return;
     
     PhysicsBody& body = bodies[id];
-    body.velocity[0] = omega[0];
-    body.velocity[1] = omega[1];
-    body.velocity[2] = omega[2];
+    body.velocity.segment<3>(0) = body.transform.orientation.inverse() * omega;
 }
 
 CollisionResult PhysicsWorld::check_collision(PhysicsBody* a, PhysicsBody* b)
@@ -292,10 +288,10 @@ void PhysicsWorld::update(Real delta)
             body.velocity += acceleration * delta;
 
             // Update position and orientation based on everything (convert angular velocity to quaternion)
-            body.transform.position += getLinearFromSpatial(body.velocity) * delta;
+            body.transform.position += body.transform.orientation * getLinearFromSpatial(body.velocity) * delta;
 
             // Get the delta quaternion
-            Vector3 omega = getAngularFromSpatial(body.velocity);
+            Vector3 omega = body.transform.orientation * getAngularFromSpatial(body.velocity);
             Real omega_magnitude = omega.norm();
             Quaternion delta_q = Quaternion(cos(omega_magnitude * delta / 2.0), omega.normalized() * sin(omega_magnitude * delta / 2.0));
 
