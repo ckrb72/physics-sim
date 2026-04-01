@@ -130,10 +130,7 @@ class PhysicsBody
 
         friend class PhysicsWorld;
 
-        PhysicsBody(const PhysicsShape& shape, const PhysicsMaterial& material, Real mass, PhysicsLayer layer);
         PhysicsBody(const PhysicsShape& shape, const PhysicsMaterial& material, const Vector3& position, const Quaternion& orientation, Real mass, PhysicsLayer layer);
-        PhysicsBody(const PhysicsShape& shape, Real mass, PhysicsLayer layer);
-        PhysicsBody(const PhysicsShape& shape, const Vector3& position, const Quaternion& orientation, Real mass, PhysicsLayer layer);
 
     public:
         PhysicsBody() = delete;
@@ -197,6 +194,7 @@ class PhysicsWorld
     public:
         PhysicsWorld();
         BodyId create_body(const PhysicsShape& shape, Real mass, PhysicsLayer layer);
+        BodyId create_body(const PhysicsShape& shape, const Vector3& position, Real mass, PhysicsLayer layer);
         BodyId create_body(const PhysicsShape& shape, const Vector3& position, const Quaternion& orientation, Real mass, PhysicsLayer layer);
         BodyId create_body(const PhysicsShape& shape, const PhysicsMaterial& material, Real mass, PhysicsLayer layer);
         BodyId create_body(const PhysicsShape& shape, const PhysicsMaterial& material, const Vector3& position, const Quaternion& orientation, Real mass, PhysicsLayer layer);
@@ -205,8 +203,10 @@ class PhysicsWorld
         // Body manipulation functions
         void set_linear_velocity(BodyId id, const Vector3& v);
         void set_angular_velocity(BodyId id, const Vector3& omega);
+        
         Matrix4 get_world_matrix(BodyId id);
 
+        // This should be outside of this class but for now it's ok
         bool is_colliding(BodyId a, BodyId b);
 
         void set_gravity(const Vector6& grav);

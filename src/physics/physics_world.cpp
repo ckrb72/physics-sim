@@ -2,6 +2,14 @@
 #include "dynamics.h"
 #include <iostream>
 
+static Matrix4 get_transform_matrix(const Transform& transform)
+{
+    Affine3 mat = Affine3::Identity();
+    mat.translate(transform.position);
+    mat.rotate(transform.orientation);
+    return mat.matrix();
+}
+
 PhysicsWorld::PhysicsWorld()
 {
 
@@ -10,21 +18,27 @@ PhysicsWorld::PhysicsWorld()
 BodyId PhysicsWorld::create_body(const PhysicsShape& shape, Real mass, PhysicsLayer layer)
 {
     BodyId id = bodies.size();
-    bodies.push_back(PhysicsBody(shape, mass, layer));
+    bodies.push_back(PhysicsBody(shape, PhysicsMaterial{}, Vector3::Identity(), Quaternion::Identity(), mass, layer));
+    return id;
+}
+BodyId PhysicsWorld::create_body(const PhysicsShape& shape, const Vector3& position, Real mass, PhysicsLayer layer)
+{
+    BodyId id = bodies.size();
+    bodies.push_back(PhysicsBody(shape, PhysicsMaterial{}, position, Quaternion::Identity(), mass, layer));
     return id;
 }
 
 BodyId PhysicsWorld::create_body(const PhysicsShape& shape, const Vector3& position, const Quaternion& orientation, Real mass, PhysicsLayer layer)
 {
     BodyId id = bodies.size();
-    bodies.push_back(PhysicsBody(shape, position, orientation, mass, layer));
+    bodies.push_back(PhysicsBody(shape, PhysicsMaterial{}, position, orientation, mass, layer));
     return id;
 }
 
 BodyId PhysicsWorld::create_body(const PhysicsShape& shape, const PhysicsMaterial& material, Real mass, PhysicsLayer layer)
 {
     BodyId id = bodies.size();
-    bodies.push_back(PhysicsBody(shape, material, mass, layer));
+    bodies.push_back(PhysicsBody(shape, material, Vector3::Identity(), Quaternion::Identity(), mass, layer));
     return id;
 }
 
@@ -40,12 +54,7 @@ Matrix4 PhysicsWorld::get_world_matrix(BodyId id)
     if (id < 0 || id > bodies.size() - 1) return {};
 
     const PhysicsBody& body = bodies[id];
-
-    Affine3 mat = Affine3::Identity();
-    mat.translate(body.transform.position);
-    mat.rotate(body.transform.orientation);
-
-    return mat.matrix();
+    return get_transform_matrix(body.transform);
 }
 
 void PhysicsWorld::set_linear_velocity(BodyId id, const Vector3& v)
@@ -104,11 +113,11 @@ CollisionResult PhysicsWorld::check_sphere_plane_collision(const PhysicsShape* c
     {
         return CollisionResult {
             .colliding = true,
-            .norm = plane_norm,
+            .norm = (norm_projection > 0.0) ? plane_norm : -plane_norm,
         };
     } 
 
-    return CollisionResult{.colliding = false};
+    return CollisionResult{ .colliding = false };
 }
 
 CollisionResult PhysicsWorld::check_plane_plane_collision(const PhysicsShape* const a, const Transform* const a_transform, const PhysicsShape* const b, const Transform* const b_transform)
@@ -119,14 +128,55 @@ CollisionResult PhysicsWorld::check_plane_plane_collision(const PhysicsShape* co
 
 CollisionResult PhysicsWorld::check_sphere_obb_collision(const PhysicsShape* const sphere, const Transform* const sphere_transform, const PhysicsShape* const obb, const Transform* const obb_transform)
 {
-    // NOT_IMPLEMENTED();
-    return {};
+    // Transform sphere's position into obb's coordinate space using inverse obb transform
+    // Can either multiply the sphere's position by the inverse of the obb transform (convert sphere position to vec4(sphere_pos, 1.0))
+    // or can use the transform translations and rotation directly. Subtract the translations, and multiply sphere_pos by inverse of the rotation quaternion
+    Vector3 sphere_obbspace_position = obb_transform->orientation.inverse() * (sphere_transform->position - obb_transform->position);
+
+    // Vector3 obb_min = -obb->obb.half_extent;
+    // Vector3 obb_max = obb->obb.half_extent;
+    Vector3 half_extent = obb->obb.half_extent;
+
+    Vector3 intersection_point;
+    intersection_point[0] = std::max(-half_extent[0], std::min(sphere_obbspace_position[0], half_extent[0]));
+    intersection_point[1] = std::max(-half_extent[1], std::min(sphere_obbspace_position[1], half_extent[1]));
+    intersection_point[2] = std::max(-half_extent[2], std::min(sphere_obbspace_position[2], half_extent[2]));
+
+    Vector3 intersection_diff = sphere_obbspace_position - intersection_point;
+    if (intersection_diff.squaredNorm() <= sphere->sphere.radius * sphere->sphere.radius)
+    {
+        return CollisionResult{
+            .colliding = true,
+            .norm = obb_transform->orientation * intersection_diff.normalized()
+        };
+    }
+
+    return CollisionResult{ .colliding = false };
 }
 
 CollisionResult PhysicsWorld::check_plane_obb_collision(const PhysicsShape* const plane, const Transform* const plane_transform, const PhysicsShape* const obb, const Transform* const obb_transform)
 {
-    // NOT_IMPLEMENTED();
-    return {};
+    Matrix3 rotation_axes = obb_transform->orientation.toRotationMatrix();
+    Vector3 half_extent = obb->obb.half_extent;
+
+    Vector3 plane_norm = plane_transform->orientation * Vector3(0.0, 1.0, 0.0);
+    plane_norm.normalize();
+
+    Real projected_radius = half_extent[0] * std::abs(plane_norm.dot(rotation_axes.col(0)))
+                          + half_extent[1] * std::abs(plane_norm.dot(rotation_axes.col(1)))
+                          + half_extent[2] * std::abs(plane_norm.dot(rotation_axes.col(2)));
+
+    Real distance = plane_norm.dot(obb_transform->position - plane_transform->position);
+
+    if (std::abs(distance) <= projected_radius)
+    {
+        return CollisionResult{
+            .colliding = true,
+            .norm = (distance > 0.0) ? plane_norm : -plane_norm
+        };
+    }
+
+    return CollisionResult{ .colliding = false };
 }
 
 
@@ -239,6 +289,7 @@ CollisionResult PhysicsWorld::check_obb_obb_collision(const PhysicsShape* const 
 
     return CollisionResult {
         .colliding = true
+        // get norm here...
     };
 }
 
@@ -268,8 +319,9 @@ void PhysicsWorld::update(Real delta)
             if (result.colliding) 
             {
                 result.norm.normalize();
-                // Vector3 reflected_vec = bodies[i].linear_momentum - 2.0f * bodies[i].linear_momentum.dot(result.norm) * result.norm;
-                // bodies[i].linear_momentum = reflected_vec * (bodies[i].material.restitution + bodies[j].material.restitution) / 2.0f;
+                Vector3 world_linear_velocity = bodies[i].transform.orientation * getLinearFromSpatial(bodies[i].velocity);
+                Vector3 reflected_vec = world_linear_velocity - 2.0f * world_linear_velocity.dot(result.norm) * result.norm;
+                bodies[i].velocity.segment<3>(3) = reflected_vec * (bodies[i].material.restitution + bodies[j].material.restitution) / 2.0f;
             }
 
         }
@@ -287,10 +339,10 @@ void PhysicsWorld::update(Real delta)
             // Update velocity based on acceleration
             body.velocity += acceleration * delta;
 
-            // Update position and orientation based on everything (convert angular velocity to quaternion)
+            // Update position (converting linear velocity from body space to world space by using transform orientation)
             body.transform.position += body.transform.orientation * getLinearFromSpatial(body.velocity) * delta;
 
-            // Get the delta quaternion
+            // Get the delta quaternion (converting angular velocity from body space to world space by using transform orientation)
             Vector3 omega = body.transform.orientation * getAngularFromSpatial(body.velocity);
             Real omega_magnitude = omega.norm();
             Quaternion delta_q = Quaternion(cos(omega_magnitude * delta / 2.0), omega.normalized() * sin(omega_magnitude * delta / 2.0));
@@ -300,24 +352,6 @@ void PhysicsWorld::update(Real delta)
             body.transform.orientation.normalize();
         }
     }
-
-
-    // for (PhysicsBody& body : bodies)
-    // {
-    //     // Update body position
-    //     if (body.layer == PhysicsLayer::DYNAMIC)
-    //     {
- 
-    //         // Gravity = acceleration (-9.8) * mass
-    //         Vector3 gravity = grav_acceleration;
-    //         gravity *= body.mass;
-    //         body.add_force(gravity);
-
-    //         // Move this outside of the physics body.
-    //         // Body shouldn't be responsible for stepping itself
-    //         body.step(delta); 
-    //     }
-    // }
 }
 
 void PhysicsWorld::set_gravity(const Vector6& grav)
