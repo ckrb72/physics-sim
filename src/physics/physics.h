@@ -24,7 +24,7 @@
 #endif
 
 using Vector6 = Eigen::Matrix<Real, 6, 1>;
-using BodyId = int32_t;
+using BodyID = int32_t;
 
 
 inline Real DegreesToRadians(Real degrees)
@@ -136,56 +136,53 @@ class PhysicsBody
         PhysicsBody() = delete;
 };
 
-struct BodyInfo
-{
-    Real mass = 0.0;
-    Vector3 position = Vector3(0.0, 0.0, 0.0);
-    Quaternion orientation = Quaternion(1.0, 0.0, 0.0, 0.0);
 
-    Vector3 linear_momentum = Vector3(0.0, 0.0, 0.0);
-    Vector3 angular_momentum = Vector3(0.0, 0.0, 0.0);
-
-    Vector3 force = Vector3(0.0, 0.0, 0.0);
-    Vector3 impulse = Vector3(0.0, 0.0, 0.0);
-    Vector3 torque = Vector3(0.0, 0.0, 0.0);
-    Vector3 torque_impulse = Vector3(0.0, 0.0, 0.0);
-};
-
-
-struct CollisionResult
+struct CollisionQuery
 {
     bool colliding = false;
-    Vector3 norm = Vector3(0.0, 0.0, 0.0);
+    Vector3 norm = Vector3::Identity();
     Real depth = 0.0;
+    Vector3 point = Vector3::Zero();
+};
+
+struct Collision
+{
+    BodyID a = -1;
+    BodyID b = -1;
+    Vector3 norm = Vector3::Identity();
+    Real depth = 0.0;
+    Vector3 point = Vector3::Zero();
 };
 
 class PhysicsWorld
 {
     private:
         std::vector<PhysicsBody> bodies;
-        Vector6 grav_acceleration = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
+        Vector6 grav_acceleration = Vector6::Zero();
+
+        std::queue<Collision> collisions;
 
         // For all plane collision algorithms, they just assume the plane is infinite for now
         // Time permitting: take into account plane extents
 
-        static CollisionResult check_sphere_sphere_collision(const PhysicsShape* const a, const Transform* const at, const PhysicsShape* const b, const Transform* const bt);
-        static CollisionResult check_sphere_plane_collision(const PhysicsShape* const sphere, const Transform* sphere_transform, const PhysicsShape* const plane, const Transform* const plane_transform);
-        static CollisionResult check_sphere_box_collision(const PhysicsShape* const sphere, const Transform* const sphere_transform, const PhysicsShape* const box, const Transform* const box_transform);
+        static CollisionQuery check_sphere_sphere_collision(const PhysicsShape* const a, const Transform* const at, const PhysicsShape* const b, const Transform* const bt);
+        static CollisionQuery check_sphere_plane_collision(const PhysicsShape* const sphere, const Transform* sphere_transform, const PhysicsShape* const plane, const Transform* const plane_transform);
+        static CollisionQuery check_sphere_box_collision(const PhysicsShape* const sphere, const Transform* const sphere_transform, const PhysicsShape* const box, const Transform* const box_transform);
         
-        static CollisionResult check_plane_plane_collision(const PhysicsShape* const a, const Transform* const a_transform, const PhysicsShape* const b, const Transform* const b_transform);
-        static CollisionResult check_plane_box_collision(const PhysicsShape* const plane, const Transform* const plane_transform, const PhysicsShape* const box, const Transform* const box_transform);
+        static CollisionQuery check_plane_plane_collision(const PhysicsShape* const a, const Transform* const a_transform, const PhysicsShape* const b, const Transform* const b_transform);
+        static CollisionQuery check_plane_box_collision(const PhysicsShape* const plane, const Transform* const plane_transform, const PhysicsShape* const box, const Transform* const box_transform);
         
-        static CollisionResult check_box_box_collision(const PhysicsShape* const a, const Transform* const a_transform, const PhysicsShape* const b, const Transform* const b_transform);
+        static CollisionQuery check_box_box_collision(const PhysicsShape* const a, const Transform* const a_transform, const PhysicsShape* const b, const Transform* const b_transform);
         
-        static CollisionResult check_sphere_obb_collision(const PhysicsShape* const sphere, const Transform* const sphere_transform, const PhysicsShape* const obb, const Transform* const obb_transform);
-        static CollisionResult check_plane_obb_collision(const PhysicsShape* const plane, const Transform* const plane_transform, const PhysicsShape* const obb, const Transform* const obb_transform);
-        static CollisionResult check_box_obb_collision(const PhysicsShape* const box, const Transform* const box_transform, const PhysicsShape* const obb, const Transform* const obb_transform);
-        static CollisionResult check_obb_obb_collision(const PhysicsShape* const a, const Transform* const a_transform, const PhysicsShape* const b, const Transform* const b_transform);
+        static CollisionQuery check_sphere_obb_collision(const PhysicsShape* const sphere, const Transform* const sphere_transform, const PhysicsShape* const obb, const Transform* const obb_transform);
+        static CollisionQuery check_plane_obb_collision(const PhysicsShape* const plane, const Transform* const plane_transform, const PhysicsShape* const obb, const Transform* const obb_transform);
+        static CollisionQuery check_box_obb_collision(const PhysicsShape* const box, const Transform* const box_transform, const PhysicsShape* const obb, const Transform* const obb_transform);
+        static CollisionQuery check_obb_obb_collision(const PhysicsShape* const a, const Transform* const a_transform, const PhysicsShape* const b, const Transform* const b_transform);
 
-        CollisionResult check_collision(PhysicsBody* a, PhysicsBody* b);
+        CollisionQuery check_collision(PhysicsBody* a, PhysicsBody* b);
 
         // Array of func pointers for collision tests
-        typedef CollisionResult (*CollisionFunc)(const PhysicsShape* const, const Transform* const, const PhysicsShape* const, const Transform* const);
+        typedef CollisionQuery (*CollisionFunc)(const PhysicsShape* const, const Transform* const, const PhysicsShape* const, const Transform* const);
         CollisionFunc collision_funcs[ShapeType::NUM_SHAPES][ShapeType::NUM_SHAPES] = 
         {
             {nullptr, nullptr, nullptr, nullptr},
@@ -196,26 +193,24 @@ class PhysicsWorld
 
     public:
         PhysicsWorld() {}
-        BodyId create_body(const PhysicsShape& shape, Real mass, PhysicsLayer layer);
-        BodyId create_body(const PhysicsShape& shape, const Vector3& position, Real mass, PhysicsLayer layer);
-        BodyId create_body(const PhysicsShape& shape, const Vector3& position, const Quaternion& orientation, Real mass, PhysicsLayer layer);
-        BodyId create_body(const PhysicsShape& shape, const PhysicsMaterial& material, Real mass, PhysicsLayer layer);
-        BodyId create_body(const PhysicsShape& shape, const PhysicsMaterial& material, const Vector3& position, Real mass, PhysicsLayer layer);
-        BodyId create_body(const PhysicsShape& shape, const PhysicsMaterial& material, const Vector3& position, const Quaternion& orientation, Real mass, PhysicsLayer layer);
-        // void remove(BodyId id);
+        BodyID create_body(const PhysicsShape& shape, Real mass, PhysicsLayer layer);
+        BodyID create_body(const PhysicsShape& shape, const Vector3& position, Real mass, PhysicsLayer layer);
+        BodyID create_body(const PhysicsShape& shape, const Vector3& position, const Quaternion& orientation, Real mass, PhysicsLayer layer);
+        BodyID create_body(const PhysicsShape& shape, const PhysicsMaterial& material, Real mass, PhysicsLayer layer);
+        BodyID create_body(const PhysicsShape& shape, const PhysicsMaterial& material, const Vector3& position, Real mass, PhysicsLayer layer);
+        BodyID create_body(const PhysicsShape& shape, const PhysicsMaterial& material, const Vector3& position, const Quaternion& orientation, Real mass, PhysicsLayer layer);
+        // void remove(BodyID id);
 
         // Body manipulation functions
-        void set_linear_velocity(BodyId id, const Vector3& v);
-        void set_angular_velocity(BodyId id, const Vector3& omega);
+        void set_linear_velocity(BodyID id, const Vector3& v);
+        void set_angular_velocity(BodyID id, const Vector3& omega);
         
-        Matrix4 get_world_matrix(BodyId id);
+        Matrix4 get_world_matrix(BodyID id);
 
         // This should be outside of this class but for now it's ok
-        bool is_colliding(BodyId a, BodyId b);
+        bool is_colliding(BodyID a, BodyID b);
 
         void set_gravity(const Vector6& grav);
-
-        BodyInfo get_info(BodyId id) const;
 
         // void set_time_step(Real duration);
 

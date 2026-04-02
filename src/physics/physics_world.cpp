@@ -10,48 +10,48 @@ static Matrix4 get_transform_matrix(const Transform& transform)
     return mat.matrix();
 }
 
-BodyId PhysicsWorld::create_body(const PhysicsShape& shape, Real mass, PhysicsLayer layer)
+BodyID PhysicsWorld::create_body(const PhysicsShape& shape, Real mass, PhysicsLayer layer)
 {
-    BodyId id = bodies.size();
+    BodyID id = bodies.size();
     bodies.push_back(PhysicsBody(shape, PhysicsMaterial{}, Vector3::Zero(), Quaternion::Identity(), mass, layer));
     return id;
 }
-BodyId PhysicsWorld::create_body(const PhysicsShape& shape, const Vector3& position, Real mass, PhysicsLayer layer)
+BodyID PhysicsWorld::create_body(const PhysicsShape& shape, const Vector3& position, Real mass, PhysicsLayer layer)
 {
-    BodyId id = bodies.size();
+    BodyID id = bodies.size();
     bodies.push_back(PhysicsBody(shape, PhysicsMaterial{}, position, Quaternion::Identity(), mass, layer));
     return id;
 }
 
-BodyId PhysicsWorld::create_body(const PhysicsShape& shape, const Vector3& position, const Quaternion& orientation, Real mass, PhysicsLayer layer)
+BodyID PhysicsWorld::create_body(const PhysicsShape& shape, const Vector3& position, const Quaternion& orientation, Real mass, PhysicsLayer layer)
 {
-    BodyId id = bodies.size();
+    BodyID id = bodies.size();
     bodies.push_back(PhysicsBody(shape, PhysicsMaterial{}, position, orientation, mass, layer));
     return id;
 }
 
-BodyId PhysicsWorld::create_body(const PhysicsShape& shape, const PhysicsMaterial& material, Real mass, PhysicsLayer layer)
+BodyID PhysicsWorld::create_body(const PhysicsShape& shape, const PhysicsMaterial& material, Real mass, PhysicsLayer layer)
 {
-    BodyId id = bodies.size();
+    BodyID id = bodies.size();
     bodies.push_back(PhysicsBody(shape, material, Vector3::Zero(), Quaternion::Identity(), mass, layer));
     return id;
 }
 
-BodyId PhysicsWorld::create_body(const PhysicsShape& shape, const PhysicsMaterial& material, const Vector3& position, Real mass, PhysicsLayer layer)
+BodyID PhysicsWorld::create_body(const PhysicsShape& shape, const PhysicsMaterial& material, const Vector3& position, Real mass, PhysicsLayer layer)
 {
-    BodyId id = bodies.size();
+    BodyID id = bodies.size();
     bodies.push_back(PhysicsBody(shape, material, position, Quaternion::Identity(), mass, layer));
     return id;
 }
 
-BodyId PhysicsWorld::create_body(const PhysicsShape& shape, const PhysicsMaterial& material, const Vector3& position, const Quaternion& orientation, Real mass, PhysicsLayer layer)
+BodyID PhysicsWorld::create_body(const PhysicsShape& shape, const PhysicsMaterial& material, const Vector3& position, const Quaternion& orientation, Real mass, PhysicsLayer layer)
 {
-    BodyId id = bodies.size();
+    BodyID id = bodies.size();
     bodies.push_back(PhysicsBody(shape, material, position, orientation, mass, layer));
     return id;
 }
 
-Matrix4 PhysicsWorld::get_world_matrix(BodyId id)
+Matrix4 PhysicsWorld::get_world_matrix(BodyID id)
 {
     if (id < 0 || id > bodies.size() - 1) return {};
 
@@ -59,7 +59,7 @@ Matrix4 PhysicsWorld::get_world_matrix(BodyId id)
     return get_transform_matrix(body.transform);
 }
 
-void PhysicsWorld::set_linear_velocity(BodyId id, const Vector3& v)
+void PhysicsWorld::set_linear_velocity(BodyID id, const Vector3& v)
 {
     if (id < 0 || id > bodies.size() - 1) return;
 
@@ -67,7 +67,7 @@ void PhysicsWorld::set_linear_velocity(BodyId id, const Vector3& v)
     body.velocity.segment<3>(3) = body.transform.orientation.inverse() * v;
 }
 
-void PhysicsWorld::set_angular_velocity(BodyId id, const Vector3& omega)
+void PhysicsWorld::set_angular_velocity(BodyID id, const Vector3& omega)
 {
     if (id < 0 || id > bodies.size() - 1) return;
     
@@ -75,13 +75,13 @@ void PhysicsWorld::set_angular_velocity(BodyId id, const Vector3& omega)
     body.velocity.segment<3>(0) = body.transform.orientation.inverse() * omega;
 }
 
-bool PhysicsWorld::is_colliding(BodyId a, BodyId b)
+bool PhysicsWorld::is_colliding(BodyID a, BodyID b)
 {
     if (a == b) return false;
 
     if (a > bodies.size() - 1 || b > bodies.size() - 1) return false;
 
-    CollisionResult result = check_collision(&bodies[a], &bodies[b]);
+    CollisionQuery result = check_collision(&bodies[a], &bodies[b]);
     return result.colliding;
 }
        
@@ -91,22 +91,35 @@ void PhysicsWorld::update(Real delta)
 {
     // Check body collisions and update forces appropriately
 
+    // Collision Queries
     for (int i = 0; i < bodies.size(); i++)
     {
         for (int j = 0; j < bodies.size(); j++)
         {
             if (i == j || (bodies[i].layer == PhysicsLayer::STATIC && bodies[j].layer == PhysicsLayer::STATIC)) continue;
 
-            CollisionResult result = check_collision(&bodies[i], &bodies[j]);
+            CollisionQuery result = check_collision(&bodies[i], &bodies[j]);
             if (result.colliding) 
             {
-                result.norm.normalize();
-                Vector3 world_linear_velocity = bodies[i].transform.orientation * getLinearFromSpatial(bodies[i].velocity);
-                Vector3 reflected_vec = world_linear_velocity - 2.0f * world_linear_velocity.dot(result.norm) * result.norm;
-                bodies[i].velocity.segment<3>(3) = reflected_vec * (bodies[i].material.restitution + bodies[j].material.restitution) / 2.0f;
+                collisions.push(Collision{ .a = i, .b = j, .norm = result.norm, .depth = result.depth, .point = result.point});
             }
 
         }
+    }
+
+    // Handle collisions
+    while(!collisions.empty())
+    {
+        Collision collision = collisions.front();
+        collisions.pop();
+
+        // Push the object away from the other object
+        // bodies[collision.a].transform.position += collision.depth * collision.norm;
+
+        // Reflect the object across the normal
+        Vector3 world_linear_velocity = bodies[collision.a].transform.orientation * getLinearFromSpatial(bodies[collision.a].velocity);
+        Vector3 reflected_vec = world_linear_velocity - 2.0f * world_linear_velocity.dot(collision.norm) * collision.norm;
+        bodies[collision.a].velocity.segment<3>(3) = reflected_vec * (bodies[collision.a].material.restitution + bodies[collision.b].material.restitution) / 2.0f;
     }
 
     for (PhysicsBody& body : bodies)

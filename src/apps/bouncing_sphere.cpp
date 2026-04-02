@@ -24,7 +24,7 @@ const int WIN_WIDTH = 1920;
 const int WIN_HEIGHT = 1080;
 
 
-void draw_ui(const BodyInfo& rb);
+// void draw_ui(const BodyInfo& rb);
 
 int main()
 {
@@ -36,11 +36,11 @@ int main()
     std::shared_ptr<Geometry> cube = GeometryFactory::load_rect(1.0, 1.0, 1.0);
 
     PhysicsWorld world;
-    BodyId sphere_body = world.create_body(PhysicsShape::MakeSphere(1.0), PhysicsMaterial{ .restitution = 0.8f }, Vector3(1.0, 0.0, 0.0), 100.0, PhysicsLayer::DYNAMIC);
-    BodyId cube_body = world.create_body(PhysicsShape::MakeOBB(Vector3(0.5, 0.5, 0.5)), Vector3(-1.0, 0.0, 0.0), 1.0, PhysicsLayer::DYNAMIC);
-    BodyId bottom_plane_body = world.create_body(PhysicsShape::MakePlane(Eigen::Vector3d(10.0, 10.0, 10.0)), Eigen::Vector3d(0.0, -3.0, 0.0), Eigen::Quaterniond(Eigen::AngleAxisd(0.0, Eigen::Vector3d(1.0, 0.0, 0.0))), 1.0, PhysicsLayer::STATIC);
-    BodyId testing_stuff = world.create_body(PhysicsShape::MakePlane(Eigen::Vector3d(10.0, 10.0, 10.0)), Eigen::Vector3d(5.0, 2.0, 0.0), Eigen::Quaterniond(Eigen::AngleAxisd(DegreesToRadians(90.0), Eigen::Vector3d(0.0, 0.0, 1.0))), 1.0, PhysicsLayer::STATIC);
-    BodyId left_plane = world.create_body(PhysicsShape::MakePlane(Eigen::Vector3d(10.0, 10.0, 10.0)), Eigen::Vector3d(-5.0, 2.0, 0.0), Eigen::Quaterniond(Eigen::AngleAxisd(DegreesToRadians(-90.0), Eigen::Vector3d(0.0, 0.0, 1.0))), 1.0, PhysicsLayer::STATIC);
+    BodyID sphere_body = world.create_body(PhysicsShape::MakeSphere(1.0), PhysicsMaterial{ .restitution = 0.8f }, Vector3(1.0, 0.0, 0.0), 100.0, PhysicsLayer::DYNAMIC);
+    BodyID cube_body = world.create_body(PhysicsShape::MakeOBB(Vector3(0.5, 0.5, 0.5)), Vector3(-1.0, 0.0, 0.0), 1.0, PhysicsLayer::DYNAMIC);
+    BodyID bottom_plane_body = world.create_body(PhysicsShape::MakePlane(Eigen::Vector3d(10.0, 10.0, 10.0)), Eigen::Vector3d(0.0, -3.0, 0.0), Eigen::Quaterniond(Eigen::AngleAxisd(0.0, Eigen::Vector3d(1.0, 0.0, 0.0))), 1.0, PhysicsLayer::STATIC);
+    BodyID testing_stuff = world.create_body(PhysicsShape::MakePlane(Eigen::Vector3d(10.0, 10.0, 10.0)), Eigen::Vector3d(5.0, 2.0, 0.0), Eigen::Quaterniond(Eigen::AngleAxisd(DegreesToRadians(90.0), Eigen::Vector3d(0.0, 0.0, 1.0))), 1.0, PhysicsLayer::STATIC);
+    BodyID left_plane = world.create_body(PhysicsShape::MakePlane(Eigen::Vector3d(10.0, 10.0, 10.0)), Eigen::Vector3d(-5.0, 2.0, 0.0), Eigen::Quaterniond(Eigen::AngleAxisd(DegreesToRadians(-90.0), Eigen::Vector3d(0.0, 0.0, 1.0))), 1.0, PhysicsLayer::STATIC);
 
     unsigned int program;
     if(!load_shader("../shader/default.vert", "../shader/default.frag", &program))
@@ -67,7 +67,6 @@ int main()
     double theta = 0.0, phi = 0.0;
 
     world.set_linear_velocity(sphere_body, Vector3(-1.0, 9.8, 0.0));
-    // world.set_angular_velocity(sphere_body, Vector3(0.0, 2.0, 0.0));
     world.set_gravity({ 0.0, 0.0, 0.0, 0.0, -9.8, 0.0});
 
 
@@ -146,49 +145,49 @@ int main()
 }
 
 
-void draw_ui(const BodyInfo& rb)
-{
-    // Build UI
-    ImGui_ImplOpenGL3_NewFrame();
-    ImGui_ImplGlfw_NewFrame();
-    ImGui::NewFrame();
+// void draw_ui(const BodyInfo& rb)
+// {
+//     // Build UI
+//     ImGui_ImplOpenGL3_NewFrame();
+//     ImGui_ImplGlfw_NewFrame();
+//     ImGui::NewFrame();
 
-    ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoCollapse;
+//     ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoCollapse;
 
-    //const ImGuiViewport* main_viewport = ImGui::GetMainViewport();
-    //ImGui::SetNextWindowPos(ImVec2(main_viewport->WorkPos.x + 100, main_viewport->WorkPos.y + 20), ImGuiCond_FirstUseEver);
-    //ImGui::SetNextWindowSize(ImVec2(550, 680), ImGuiCond_FirstUseEver);
+//     //const ImGuiViewport* main_viewport = ImGui::GetMainViewport();
+//     //ImGui::SetNextWindowPos(ImVec2(main_viewport->WorkPos.x + 100, main_viewport->WorkPos.y + 20), ImGuiCond_FirstUseEver);
+//     //ImGui::SetNextWindowSize(ImVec2(550, 680), ImGuiCond_FirstUseEver);
 
-    if(!ImGui::Begin("Stats", nullptr, window_flags))
-    {
-        ImGui::End();
-        return;
-    }
+//     if(!ImGui::Begin("Stats", nullptr, window_flags))
+//     {
+//         ImGui::End();
+//         return;
+//     }
 
 
-    ImGui::Text("Mass: %f", rb.mass);
-    ImGui::Spacing();
-    ImGui::Text("Position: %f %f %f", rb.position.x(), rb.position.y(), rb.position.z());
-    ImGui::Spacing();
-    ImGui::Text("Orientation (Quaternion): %f %f %f %f", rb.orientation.w(), rb.orientation.x(), rb.orientation.y(), rb.orientation.z());
-    ImGui::Spacing();
-    ImGui::Text("Linear Momentum: %f %f %f |LM|: %f", rb.linear_momentum.x(), rb.linear_momentum.y(), rb.linear_momentum.z(), rb.linear_momentum.norm());
-    ImGui::Spacing();
-    ImGui::Text("Angular Momentum: %f %f %f |AM|: %f", rb.angular_momentum.x(), rb.angular_momentum.y(), rb.angular_momentum.z(), rb.angular_momentum.norm());
-    ImGui::Spacing();
-    ImGui::Text("Force: %f %f %f |F|: %f", rb.force.x(), rb.force.y(), rb.force.z(), rb.force.norm());
-    ImGui::Spacing();
-    ImGui::Text("Impulse: %f %f %f |Impulse|: %f", rb.impulse.x(), rb.impulse.y(), rb.impulse.z(), rb.impulse.norm());
-    ImGui::Spacing();
-    ImGui::Text("Torque: %f %f %f |F|: %f", rb.torque.x(), rb.torque.y(), rb.torque.z(), rb.torque.norm());
-    ImGui::Spacing();
-    ImGui::Text("Force: %f %f %f |F|: %f", rb.torque_impulse.x(), rb.torque_impulse.y(), rb.torque_impulse.z(), rb.torque_impulse.norm());
-    ImGui::Spacing();
+//     ImGui::Text("Mass: %f", rb.mass);
+//     ImGui::Spacing();
+//     ImGui::Text("Position: %f %f %f", rb.position.x(), rb.position.y(), rb.position.z());
+//     ImGui::Spacing();
+//     ImGui::Text("Orientation (Quaternion): %f %f %f %f", rb.orientation.w(), rb.orientation.x(), rb.orientation.y(), rb.orientation.z());
+//     ImGui::Spacing();
+//     ImGui::Text("Linear Momentum: %f %f %f |LM|: %f", rb.linear_momentum.x(), rb.linear_momentum.y(), rb.linear_momentum.z(), rb.linear_momentum.norm());
+//     ImGui::Spacing();
+//     ImGui::Text("Angular Momentum: %f %f %f |AM|: %f", rb.angular_momentum.x(), rb.angular_momentum.y(), rb.angular_momentum.z(), rb.angular_momentum.norm());
+//     ImGui::Spacing();
+//     ImGui::Text("Force: %f %f %f |F|: %f", rb.force.x(), rb.force.y(), rb.force.z(), rb.force.norm());
+//     ImGui::Spacing();
+//     ImGui::Text("Impulse: %f %f %f |Impulse|: %f", rb.impulse.x(), rb.impulse.y(), rb.impulse.z(), rb.impulse.norm());
+//     ImGui::Spacing();
+//     ImGui::Text("Torque: %f %f %f |F|: %f", rb.torque.x(), rb.torque.y(), rb.torque.z(), rb.torque.norm());
+//     ImGui::Spacing();
+//     ImGui::Text("Force: %f %f %f |F|: %f", rb.torque_impulse.x(), rb.torque_impulse.y(), rb.torque_impulse.z(), rb.torque_impulse.norm());
+//     ImGui::Spacing();
 
-    ImGui::End();
+//     ImGui::End();
 
-    ImGui::EndFrame();
+//     ImGui::EndFrame();
 
-    ImGui::Render();
-    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-}
+//     ImGui::Render();
+//     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+// }

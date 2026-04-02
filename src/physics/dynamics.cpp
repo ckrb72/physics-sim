@@ -1,6 +1,5 @@
 #include "dynamics.h"
 
-
 // will eventually want to pass in a whole kinematic tree with joints but for now just focus on a single body
 // Returns the necessary force for the given inputs
 
