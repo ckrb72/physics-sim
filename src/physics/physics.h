@@ -179,7 +179,7 @@ class PhysicsWorld
         static CollisionQuery check_box_obb_collision(const PhysicsShape* const box, const Transform* const box_transform, const PhysicsShape* const obb, const Transform* const obb_transform);
         static CollisionQuery check_obb_obb_collision(const PhysicsShape* const a, const Transform* const a_transform, const PhysicsShape* const b, const Transform* const b_transform);
 
-        CollisionQuery check_collision(PhysicsBody* a, PhysicsBody* b);
+        CollisionQuery check_collision(const PhysicsBody* a, const PhysicsBody* b);
 
         // Array of func pointers for collision tests
         typedef CollisionQuery (*CollisionFunc)(const PhysicsShape* const, const Transform* const, const PhysicsShape* const, const Transform* const);

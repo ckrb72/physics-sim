@@ -94,34 +94,48 @@ void PhysicsWorld::update(Real delta)
     // Collision Queries
     for (int i = 0; i < bodies.size(); i++)
     {
-        for (int j = 0; j < bodies.size(); j++)
+        for (int j = i + 1; j < bodies.size(); j++)
         {
-            if (i == j || (bodies[i].layer == PhysicsLayer::STATIC && bodies[j].layer == PhysicsLayer::STATIC)) continue;
+            if (bodies[i].layer == PhysicsLayer::STATIC && bodies[j].layer == PhysicsLayer::STATIC) continue;
 
             CollisionQuery result = check_collision(&bodies[i], &bodies[j]);
             if (result.colliding) 
             {
-                collisions.push(Collision{ .a = i, .b = j, .norm = result.norm, .depth = result.depth, .point = result.point});
+                collisions.push(Collision{ .a = i, .b = j, .norm = result.norm, .depth = result.depth, .point = result.point });
             }
-
         }
     }
 
-    // Handle collisions
+    // Collision Resolution
     while(!collisions.empty())
     {
         Collision collision = collisions.front();
         collisions.pop();
 
-        // Push the object away from the other object
-        // bodies[collision.a].transform.position += collision.depth * collision.norm;
+        // Handle Collisions
 
-        // Reflect the object across the normal
-        Vector3 world_linear_velocity = bodies[collision.a].transform.orientation * getLinearFromSpatial(bodies[collision.a].velocity);
-        Vector3 reflected_vec = world_linear_velocity - 2.0f * world_linear_velocity.dot(collision.norm) * collision.norm;
-        bodies[collision.a].velocity.segment<3>(3) = reflected_vec * (bodies[collision.a].material.restitution + bodies[collision.b].material.restitution) / 2.0f;
+        // Push the object away from the other object
+        if (bodies[collision.a].layer == PhysicsLayer::DYNAMIC)
+        {
+            bodies[collision.a].transform.position -= collision.depth * collision.norm;
+
+            // Reflect the object across the normal
+            Vector3 world_linear_velocity = bodies[collision.a].transform.orientation * getLinearFromSpatial(bodies[collision.a].velocity);
+            Vector3 reflected_vec = world_linear_velocity - 2.0f * world_linear_velocity.dot(collision.norm) * collision.norm;
+            bodies[collision.a].velocity.segment<3>(3) = reflected_vec * (bodies[collision.a].material.restitution + bodies[collision.b].material.restitution) / 2.0f;
+        }
+
+        if (bodies[collision.b].layer == PhysicsLayer::DYNAMIC)
+        {
+            bodies[collision.b].transform.position += collision.depth * collision.norm;
+
+            Vector3 world_linear_velocity_b = bodies[collision.b].transform.orientation * getLinearFromSpatial(bodies[collision.b].velocity);
+            Vector3 reflected_b_vec = world_linear_velocity_b - 2.0f * world_linear_velocity_b.dot(collision.norm) * collision.norm;
+            bodies[collision.b].velocity.segment<3>(3) = reflected_b_vec * (bodies[collision.a].material.restitution + bodies[collision.b].material.restitution) / 2.0f;
+        }
     }
 
+    // Update forces and positions
     for (PhysicsBody& body : bodies)
     {
         // Only update bodies that are dynamic (i.e. respond to physics events)
@@ -146,8 +160,8 @@ void PhysicsWorld::update(Real delta)
             body.transform.orientation = delta_q * body.transform.orientation;
             body.transform.orientation.normalize();
 
-            // body.force = Vector3::Zero();
-            // body.torque = Vector3::Zero();
+            body.force = Vector3::Zero();
+            body.torque = Vector3::Zero();
         }
     }
 }

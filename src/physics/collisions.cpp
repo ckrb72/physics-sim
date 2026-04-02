@@ -2,20 +2,34 @@
     Holds all collision algorithms used by the collision detection system
 */
 
+// TODO: FIX ALL NORMAL DIRECTIONS
+
 #include "physics.h"
 
-CollisionQuery PhysicsWorld::check_collision(PhysicsBody* a, PhysicsBody* b)
+CollisionQuery PhysicsWorld::check_collision(const PhysicsBody* a, const PhysicsBody* b)
 {
+
+    bool swapped = false;
     // Sort by shape type
     if (a->shape.type > b->shape.type)
     {
-        PhysicsBody* temp = a;
+        const PhysicsBody* temp = a;
         a = b;
         b = temp;
+        swapped = true;
     }
 
+    // if the shapes were swapped, flip the normal
+    // (this assumes that the normal will always point from the first shape to the second shape which is probably what we want)
+
     // Call correct function depending on a and b's types
-    return collision_funcs[a->shape.type][b->shape.type](&a->shape, &a->transform, &b->shape, &b->transform); 
+    CollisionQuery result = collision_funcs[a->shape.type][b->shape.type](&a->shape, &a->transform, &b->shape, &b->transform); 
+    if (swapped)
+    {
+        result.norm = -result.norm;
+    }
+
+    return result;
 }
 
 CollisionQuery PhysicsWorld::check_sphere_sphere_collision(const PhysicsShape* const a, const Transform* const at, const PhysicsShape* const b, const Transform* const bt)
@@ -29,7 +43,8 @@ CollisionQuery PhysicsWorld::check_sphere_sphere_collision(const PhysicsShape* c
         return CollisionQuery {
             .colliding = true,
             .norm = position_diff.normalized(),
-            .depth = radius_sum - distance
+            .depth = radius_sum - distance,
+            .point = Vector3::Zero()
         };
     }
     return CollisionQuery { .colliding = false };
@@ -48,8 +63,9 @@ CollisionQuery PhysicsWorld::check_sphere_plane_collision(const PhysicsShape* co
     {
         return CollisionQuery {
             .colliding = true,
-            .norm = (norm_projection > 0.0) ? plane_norm : -plane_norm,
-            .depth = sphere->sphere.radius - distance
+            .norm = (norm_projection > 0.0) ? -plane_norm : plane_norm,
+            .depth = sphere->sphere.radius - distance,
+            .point = Vector3::Zero()
         };
     } 
 
@@ -83,12 +99,13 @@ CollisionQuery PhysicsWorld::check_sphere_obb_collision(const PhysicsShape* cons
 
     if (distance <= sphere->sphere.radius)
     {
-        Vector3 norm = obb_transform->orientation * intersection_diff;
+        Vector3 norm = -(obb_transform->orientation * intersection_diff);
 
         return CollisionQuery{
             .colliding = true,
             .norm = norm.normalized(),
-            .depth = distance
+            .depth = distance,
+            .point = Vector3::Zero()
         };
     }
 
@@ -115,7 +132,8 @@ CollisionQuery PhysicsWorld::check_plane_obb_collision(const PhysicsShape* const
         return CollisionQuery{
             .colliding = true,
             .norm = (signed_distance > 0.0) ? plane_norm : -plane_norm,
-            .depth = projected_radius - distance
+            .depth = projected_radius - distance,
+            .point = Vector3::Zero()
         };
     }
 
@@ -234,6 +252,7 @@ CollisionQuery PhysicsWorld::check_obb_obb_collision(const PhysicsShape* const a
     return CollisionQuery {
         .colliding = true,
         .norm = Vector3::Identity(),
-        .depth = 0.0
+        .depth = 0.0,
+        .point = Vector3::Zero()
     };
 }
