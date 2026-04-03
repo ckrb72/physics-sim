@@ -5,8 +5,19 @@
 // TODO: FIX ALL NORMAL DIRECTIONS
 
 #include "physics.h"
+#include "dynamics.h"
 
-CollisionQuery PhysicsWorld::check_collision(const PhysicsBody* a, const PhysicsBody* b)
+bool PhysicsWorld::isColliding(BodyID a, BodyID b)
+{
+    if (a == b) return false;
+
+    if (a > bodies.size() - 1 || b > bodies.size() - 1) return false;
+
+    CollisionQuery result = checkCollision(&bodies[a], &bodies[b]);
+    return result.colliding;
+}
+
+CollisionQuery PhysicsWorld::checkCollision(const PhysicsBody* a, const PhysicsBody* b)
 {
 
     bool swapped = false;
@@ -32,7 +43,28 @@ CollisionQuery PhysicsWorld::check_collision(const PhysicsBody* a, const Physics
     return result;
 }
 
-CollisionQuery PhysicsWorld::check_sphere_sphere_collision(const PhysicsShape* const a, const Transform* const at, const PhysicsShape* const b, const Transform* const bt)
+void PhysicsWorld::handleCollision(const Collision& collision)
+{
+    // Push the object away from the other object
+    if (bodies[collision.a].layer == PhysicsLayer::DYNAMIC)
+    {
+        bodies[collision.a].transform.position -= collision.depth * collision.norm;
+        // Reflect the object across the normal
+        Vector3 world_linear_velocity = bodies[collision.a].transform.orientation * getLinearFromSpatial(bodies[collision.a].velocity);
+        Vector3 reflected_vec = world_linear_velocity - 2.0f * world_linear_velocity.dot(collision.norm) * collision.norm;
+        bodies[collision.a].velocity.segment<3>(3) = reflected_vec * (bodies[collision.a].material.restitution + bodies[collision.b].material.restitution) / 2.0f;
+    }
+
+    if (bodies[collision.b].layer == PhysicsLayer::DYNAMIC)
+    {
+        bodies[collision.b].transform.position += collision.depth * collision.norm;
+        Vector3 world_linear_velocity_b = bodies[collision.b].transform.orientation * getLinearFromSpatial(bodies[collision.b].velocity);
+        Vector3 reflected_b_vec = world_linear_velocity_b - 2.0f * world_linear_velocity_b.dot(collision.norm) * collision.norm;
+        bodies[collision.b].velocity.segment<3>(3) = reflected_b_vec * (bodies[collision.a].material.restitution + bodies[collision.b].material.restitution) / 2.0f;
+    }
+}
+
+CollisionQuery PhysicsWorld::checkSphereSphereCollision(const PhysicsShape* const a, const Transform* const at, const PhysicsShape* const b, const Transform* const bt)
 {
     Vector3 position_diff = bt->position - at->position;
     Real distance = position_diff.norm();
@@ -50,7 +82,7 @@ CollisionQuery PhysicsWorld::check_sphere_sphere_collision(const PhysicsShape* c
     return CollisionQuery { .colliding = false };
 }
 
-CollisionQuery PhysicsWorld::check_sphere_plane_collision(const PhysicsShape* const sphere, const Transform* const sphere_transform, const PhysicsShape* const plane, const Transform* const plane_transform)
+CollisionQuery PhysicsWorld::checkSpherePlaneCollision(const PhysicsShape* const sphere, const Transform* const sphere_transform, const PhysicsShape* const plane, const Transform* const plane_transform)
 {
     Vector3 plane_norm = plane_transform->orientation * Vector3(0.0, 1.0, 0.0);
     plane_norm.normalize();
@@ -72,13 +104,13 @@ CollisionQuery PhysicsWorld::check_sphere_plane_collision(const PhysicsShape* co
     return CollisionQuery { .colliding = false };
 }
 
-CollisionQuery PhysicsWorld::check_plane_plane_collision(const PhysicsShape* const a, const Transform* const a_transform, const PhysicsShape* const b, const Transform* const b_transform)
+CollisionQuery PhysicsWorld::checkPlanePlaneCollision(const PhysicsShape* const a, const Transform* const a_transform, const PhysicsShape* const b, const Transform* const b_transform)
 {
     // NOT_IMPLEMENTED();
     return {};
 }
 
-CollisionQuery PhysicsWorld::check_sphere_obb_collision(const PhysicsShape* const sphere, const Transform* const sphere_transform, const PhysicsShape* const obb, const Transform* const obb_transform)
+CollisionQuery PhysicsWorld::checkSphereOBBCollision(const PhysicsShape* const sphere, const Transform* const sphere_transform, const PhysicsShape* const obb, const Transform* const obb_transform)
 {
     // Transform sphere's position into obb's coordinate space using inverse obb transform
     // Can either multiply the sphere's position by the inverse of the obb transform (convert sphere position to vec4(sphere_pos, 1.0))
@@ -112,7 +144,7 @@ CollisionQuery PhysicsWorld::check_sphere_obb_collision(const PhysicsShape* cons
     return CollisionQuery{ .colliding = false };
 }
 
-CollisionQuery PhysicsWorld::check_plane_obb_collision(const PhysicsShape* const plane, const Transform* const plane_transform, const PhysicsShape* const obb, const Transform* const obb_transform)
+CollisionQuery PhysicsWorld::checkPlaneOBBCollision(const PhysicsShape* const plane, const Transform* const plane_transform, const PhysicsShape* const obb, const Transform* const obb_transform)
 {
     Matrix3 rotation_axes = obb_transform->orientation.toRotationMatrix();
     Vector3 half_extent = obb->obb.half_extent;
@@ -141,7 +173,7 @@ CollisionQuery PhysicsWorld::check_plane_obb_collision(const PhysicsShape* const
 }
 
 
-CollisionQuery PhysicsWorld::check_obb_obb_collision(const PhysicsShape* const a, const Transform* const a_transform, const PhysicsShape* const b, const Transform* const b_transform)
+CollisionQuery PhysicsWorld::checkOBBOBBCollision(const PhysicsShape* const a, const Transform* const a_transform, const PhysicsShape* const b, const Transform* const b_transform)
 {
     const OBBShape* a_shape = &a->obb;
     const OBBShape* b_shape = &b->obb;
