@@ -107,9 +107,9 @@ void PhysicsWorld::update(Real delta)
     // Resolve Velocities
     for (int i = 0; i < collisionVelocityIterations; i++)
     {
-        for (const Collision& collision : collisions)
+        for (Collision& collision : collisions)
         {
-            handleCollisionVelocities(collision);
+            handleCollisionVelocities(collision, delta);
         }
     }
 

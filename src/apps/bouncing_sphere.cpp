@@ -37,7 +37,7 @@ int main()
 
     PhysicsWorld world;
     BodyID sphere_body = world.createBody(PhysicsShape::MakeSphere(1.0), PhysicsMaterial{ .restitution = 0.8f }, Vector3(1.0, 0.0, 0.0), 100.0, PhysicsLayer::DYNAMIC);
-    BodyID cube_body = world.createBody(PhysicsShape::MakeOBB(Vector3(0.5, 0.5, 0.5)), Vector3(-1.0, 0.0, 0.0), 1.0, PhysicsLayer::DYNAMIC);
+    // BodyID cube_body = world.createBody(PhysicsShape::MakeOBB(Vector3(0.5, 0.5, 0.5)), Vector3(-1.0, 0.0, 0.0), 1.0, PhysicsLayer::DYNAMIC);
     BodyID bottom_plane_body = world.createBody(PhysicsShape::MakePlane(Eigen::Vector3d(10.0, 10.0, 10.0)), Eigen::Vector3d(0.0, -3.0, 0.0), Eigen::Quaterniond(Eigen::AngleAxisd(0.0, Eigen::Vector3d(1.0, 0.0, 0.0))), 1.0, PhysicsLayer::STATIC);
     BodyID testing_stuff = world.createBody(PhysicsShape::MakePlane(Eigen::Vector3d(10.0, 10.0, 10.0)), Eigen::Vector3d(5.0, 2.0, 0.0), Eigen::Quaterniond(Eigen::AngleAxisd(DegreesToRadians(90.0), Eigen::Vector3d(0.0, 0.0, 1.0))), 1.0, PhysicsLayer::STATIC);
     BodyID left_plane = world.createBody(PhysicsShape::MakePlane(Eigen::Vector3d(10.0, 10.0, 10.0)), Eigen::Vector3d(-5.0, 2.0, 0.0), Eigen::Quaterniond(Eigen::AngleAxisd(DegreesToRadians(-90.0), Eigen::Vector3d(0.0, 0.0, 1.0))), 1.0, PhysicsLayer::STATIC);
@@ -122,7 +122,7 @@ int main()
             plane->draw(program, EigenMatrixToFloatArray(world.getWorldMatrix(bottom_plane_body)));
             plane->draw(program, EigenMatrixToFloatArray(world.getWorldMatrix(testing_stuff)));
             plane->draw(program, EigenMatrixToFloatArray(world.getWorldMatrix(left_plane)));
-            cube->draw(program, EigenMatrixToFloatArray(world.getWorldMatrix(cube_body)));
+            // cube->draw(program, EigenMatrixToFloatArray(world.getWorldMatrix(cube_body)));
 
             // draw_ui(world.get_info(sphere_body));
 

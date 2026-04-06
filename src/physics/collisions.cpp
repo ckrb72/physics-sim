@@ -44,7 +44,7 @@ CollisionQuery PhysicsWorld::checkCollision(const PhysicsBody* a, const PhysicsB
     return result;
 }
 
-void PhysicsWorld::handleCollisionVelocities(const Collision& collision)
+void PhysicsWorld::handleCollisionVelocities(Collision& collision, Real delta)
 {
     PhysicsBody& a = bodies[collision.a];
     PhysicsBody& b = bodies[collision.b];
@@ -52,6 +52,48 @@ void PhysicsWorld::handleCollisionVelocities(const Collision& collision)
     Real inverse_a_mass = (a.layer == PhysicsLayer::DYNAMIC) ? 1.0 / a.mass : 0.0;
     Real inverse_b_mass = (b.layer == PhysicsLayer::DYNAMIC) ? 1.0 / b.mass : 0.0;
 
+    Vector3 relative_a = collision.point - a.transform.position;
+    Vector3 relative_b = collision.point - b.transform.position;
+
+    Vector3 velocity_a = getLinearFromSpatial(a.velocity) + getAngularFromSpatial(a.velocity).cross(relative_a);
+    Vector3 velocity_b = getLinearFromSpatial(b.velocity) + getAngularFromSpatial(b.velocity).cross(relative_b);
+
+    Vector3 relative_velocity = velocity_b - velocity_a;
+    Real velocity_along_normal = collision.norm.dot(relative_velocity);
+
+    // The two bodies are already moving apart so no need to change the velocity
+    if (velocity_along_normal > 0.0 && collision.depth <= 0.0) return;
+
+    Real baumgarte = 0.2;
+    Real slop = 0.01;
+
+    Real bias = baumgarte * std::max(collision.depth - slop, 0.0) / delta;
+    Real restitution = (velocity_along_normal < -1.0f) ? std::min(a.material.restitution, b.material.restitution) : 0.0;
+
+    Real impulse = -(velocity_along_normal * bias) + (1.0f + restitution);
+    Vector3 a_intermediate = a.inverse_inertia * relative_a.cross(collision.norm);
+    Vector3 b_intermediate = b.inverse_inertia * relative_b.cross(collision.norm);
+
+    Real denominator = inverse_a_mass + inverse_b_mass + collision.norm.dot(a_intermediate.cross(relative_a) + b_intermediate.cross(relative_b));
+    impulse /= denominator;
+
+    Real new_impulse = std::max(impulse + collision.accumulated_impulse, 0.0);
+    Real delta_impulse = new_impulse - collision.accumulated_impulse;
+    collision.accumulated_impulse = new_impulse;
+
+    Vector3 impulse_vec = delta_impulse * collision.norm;
+
+    Vector3 new_linear_a = getLinearFromSpatial(a.velocity) - inverse_a_mass * impulse_vec;
+    Vector3 new_angular_a = getAngularFromSpatial(a.velocity) - a.inverse_inertia * relative_a.cross(impulse_vec);
+
+    setLinearVelocity(collision.a, new_linear_a);
+    setAngularVelocity(collision.a, new_angular_a);
+
+    Vector3 new_linear_b = getLinearFromSpatial(b.velocity) + inverse_b_mass * impulse_vec;
+    Vector3 new_angular_b = getAngularFromSpatial(b.velocity) + b.inverse_inertia * relative_b.cross(impulse_vec);
+
+    setLinearVelocity(collision.b, new_linear_b);
+    setAngularVelocity(collision.b, new_angular_b);
     
 }
 
@@ -67,7 +109,7 @@ void PhysicsWorld::handleCollisionPositions(const Collision& collision)
     if (total_inverse_mass == 0.0) return;
 
     Real slop = 0.01;
-    Real percent = 0.8;
+    Real percent = 0.2;
     Real corrected_depth = std::max(collision.depth - slop, 0.0);
     Vector3 norm_depth = collision.norm * (percent * corrected_depth / total_inverse_mass);
 
@@ -90,11 +132,14 @@ CollisionQuery PhysicsWorld::checkSphereSphereCollision(const PhysicsShape* cons
 
     if (distance <= radius_sum)
     {
+        Vector3 norm = position_diff.normalized();
+        Vector3 a_intersection_point = at->position + norm * a->sphere.radius;
+        Vector3 b_intersection_point = bt->position - norm * b->sphere.radius;
         return CollisionQuery {
             .colliding = true,
-            .norm = position_diff.normalized(),
+            .norm = norm,
             .depth = radius_sum - distance,
-            .point = Vector3::Zero()
+            .point = (a_intersection_point + b_intersection_point) * 0.5
         };
     }
     return CollisionQuery { .colliding = false };
@@ -111,11 +156,13 @@ CollisionQuery PhysicsWorld::checkSpherePlaneCollision(const PhysicsShape* const
 
     if (distance <= sphere->sphere.radius)
     {
+        Vector3 point_on_sphere = sphere_transform->position - plane_norm * sphere->sphere.radius;
+        Vector3 point_on_plane = sphere_transform->position - plane_norm * distance;
         return CollisionQuery {
             .colliding = true,
             .norm = (norm_projection > 0.0) ? -plane_norm : plane_norm,
             .depth = sphere->sphere.radius - distance,
-            .point = Vector3::Zero()
+            .point = (point_on_sphere + point_on_plane) * 0.5
         };
     } 
 
@@ -139,6 +186,7 @@ CollisionQuery PhysicsWorld::checkSphereOBBCollision(const PhysicsShape* const s
     // Vector3 obb_max = obb->obb.half_extent;
     Vector3 half_extent = obb->obb.half_extent;
 
+    // Note: This is in the OBB's coordinate space
     Vector3 intersection_point;
     intersection_point[0] = std::max(-half_extent[0], std::min(sphere_obbspace_position[0], half_extent[0]));
     intersection_point[1] = std::max(-half_extent[1], std::min(sphere_obbspace_position[1], half_extent[1]));
@@ -151,11 +199,14 @@ CollisionQuery PhysicsWorld::checkSphereOBBCollision(const PhysicsShape* const s
     {
         Vector3 norm = -(obb_transform->orientation * intersection_diff);
 
+        Vector3 point_on_box = obb_transform->orientation * intersection_point;
+        Vector3 point_on_sphere = sphere_transform->position + norm * sphere->sphere.radius;
+
         return CollisionQuery{
             .colliding = true,
             .norm = norm.normalized(),
             .depth = distance,
-            .point = Vector3::Zero()
+            .point = (point_on_box + point_on_sphere) * 0.5
         };
     }
 
@@ -183,7 +234,7 @@ CollisionQuery PhysicsWorld::checkPlaneOBBCollision(const PhysicsShape* const pl
             .colliding = true,
             .norm = (signed_distance > 0.0) ? plane_norm : -plane_norm,
             .depth = projected_radius - distance,
-            .point = Vector3::Zero()
+            .point = Vector3::Zero()    // TODO
         };
     }
 
@@ -301,8 +352,8 @@ CollisionQuery PhysicsWorld::checkOBBOBBCollision(const PhysicsShape* const a, c
     // FIXME: FIND OUT HOW TO CALCULATE DEPTH AND NORM
     return CollisionQuery {
         .colliding = true,
-        .norm = Vector3::Identity(),
+        .norm = Vector3::Identity(),    // TODO
         .depth = 0.0,
-        .point = Vector3::Zero()
+        .point = Vector3::Zero()        // TODO
     };
 }

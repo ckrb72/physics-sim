@@ -154,6 +154,8 @@ struct Collision
     Vector3 norm = Vector3::Identity();
     Real depth = 0.0;
     Vector3 point = Vector3::Zero();
+    Real accumulated_impulse = 0.0;
+    bool restitution_applied = false;
 };
 
 class PhysicsWorld
@@ -181,11 +183,11 @@ class PhysicsWorld
         static CollisionQuery checkBoxOBBCollision(const PhysicsShape* const box, const Transform* const box_transform, const PhysicsShape* const obb, const Transform* const obb_transform);
         static CollisionQuery checkOBBOBBCollision(const PhysicsShape* const a, const Transform* const a_transform, const PhysicsShape* const b, const Transform* const b_transform);
 
-        const uint32_t collisionPositionIterations =1;
+        const uint32_t collisionPositionIterations = 10;
         const uint32_t collisionVelocityIterations = 10;
 
         CollisionQuery checkCollision(const PhysicsBody* a, const PhysicsBody* b);
-        void handleCollisionVelocities(const Collision& collision);
+        void handleCollisionVelocities(Collision& collision, Real delta);
         void handleCollisionPositions(const Collision& collision);
 
         // Array of func pointers for collision tests
