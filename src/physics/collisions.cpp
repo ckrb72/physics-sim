@@ -6,6 +6,7 @@
 
 #include "physics.h"
 #include "dynamics.h"
+#include <iostream>
 
 bool PhysicsWorld::isColliding(BodyID a, BodyID b)
 {
@@ -43,24 +44,41 @@ CollisionQuery PhysicsWorld::checkCollision(const PhysicsBody* a, const PhysicsB
     return result;
 }
 
-void PhysicsWorld::handleCollision(const Collision& collision)
+void PhysicsWorld::handleCollisionVelocities(const Collision& collision)
 {
-    // Push the object away from the other object
-    if (bodies[collision.a].layer == PhysicsLayer::DYNAMIC)
+    PhysicsBody& a = bodies[collision.a];
+    PhysicsBody& b = bodies[collision.b];
+    
+    Real inverse_a_mass = (a.layer == PhysicsLayer::DYNAMIC) ? 1.0 / a.mass : 0.0;
+    Real inverse_b_mass = (b.layer == PhysicsLayer::DYNAMIC) ? 1.0 / b.mass : 0.0;
+
+    
+}
+
+void PhysicsWorld::handleCollisionPositions(const Collision& collision)
+{
+    PhysicsBody& a = bodies[collision.a];
+    PhysicsBody& b = bodies[collision.b];
+
+    Real inverse_a_mass = (a.layer == PhysicsLayer::DYNAMIC) ? 1.0 / a.mass : 0.0;
+    Real inverse_b_mass = (b.layer == PhysicsLayer::DYNAMIC) ? 1.0 / b.mass : 0.0;
+    Real total_inverse_mass = inverse_a_mass + inverse_b_mass;
+
+    if (total_inverse_mass == 0.0) return;
+
+    Real slop = 0.01;
+    Real percent = 0.8;
+    Real corrected_depth = std::max(collision.depth - slop, 0.0);
+    Vector3 norm_depth = collision.norm * (percent * corrected_depth / total_inverse_mass);
+
+    if (inverse_a_mass > 0.0)
     {
-        bodies[collision.a].transform.position -= collision.depth * collision.norm;
-        // Reflect the object across the normal
-        Vector3 world_linear_velocity = bodies[collision.a].transform.orientation * getLinearFromSpatial(bodies[collision.a].velocity);
-        Vector3 reflected_vec = world_linear_velocity - 2.0f * world_linear_velocity.dot(collision.norm) * collision.norm;
-        bodies[collision.a].velocity.segment<3>(3) = reflected_vec * (bodies[collision.a].material.restitution + bodies[collision.b].material.restitution) / 2.0f;
+        a.transform.position -= norm_depth * inverse_a_mass;
     }
 
-    if (bodies[collision.b].layer == PhysicsLayer::DYNAMIC)
+    if (inverse_b_mass > 0.0)
     {
-        bodies[collision.b].transform.position += collision.depth * collision.norm;
-        Vector3 world_linear_velocity_b = bodies[collision.b].transform.orientation * getLinearFromSpatial(bodies[collision.b].velocity);
-        Vector3 reflected_b_vec = world_linear_velocity_b - 2.0f * world_linear_velocity_b.dot(collision.norm) * collision.norm;
-        bodies[collision.b].velocity.segment<3>(3) = reflected_b_vec * (bodies[collision.a].material.restitution + bodies[collision.b].material.restitution) / 2.0f;
+        b.transform.position += norm_depth * inverse_b_mass;
     }
 }
 

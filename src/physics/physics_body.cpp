@@ -4,4 +4,5 @@ PhysicsBody::PhysicsBody(const PhysicsShape& shape, const PhysicsMaterial& mater
 :shape(shape), material(material), transform(position, orientation), mass(mass), layer(layer)
 {
     spatial_inertia = GetSpatialInertia(shape, mass);
+    inverse_inertia = GetInertiaTensor(shape, mass).inverse();
 }

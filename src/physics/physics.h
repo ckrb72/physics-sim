@@ -1,6 +1,6 @@
 #pragma once
 #include <vector>
-#include <queue>
+#include <deque>
 #include <memory>
 #include <Eigen/Dense>
 #include <cmath>
@@ -97,6 +97,7 @@ struct PhysicsShape
 };
 
 Eigen::Matrix<Real, 6, 6> GetSpatialInertia(const PhysicsShape& shape, Real mass);
+Matrix3 GetInertiaTensor(const PhysicsShape& shape, Real mass);
 
 enum PhysicsLayer
 {
@@ -107,8 +108,8 @@ enum PhysicsLayer
 
 struct Transform
 {
-    Vector3 position = Vector3(0.0, 0.0, 0.0);
-    Quaternion orientation = Quaternion(1.0, 0.0, 0.0, 0.0);
+    Vector3 position = Vector3::Zero();
+    Quaternion orientation = Quaternion::Identity();
 };
 
 
@@ -117,13 +118,14 @@ class PhysicsBody
     private:
         Real mass = 0.0;
         PhysicsShape shape;
-        Eigen::Matrix<Real, 6, 6> spatial_inertia = {};
-        Vector6 velocity = {};
+        Eigen::Matrix<Real, 6, 6> spatial_inertia = Eigen::Matrix<Real, 6, 6>::Identity();
+        Matrix3 inverse_inertia = Matrix3::Identity();
+        Vector6 velocity = Vector6::Zero();
         Transform transform;
 
         // Add to this each frame to apply forces to the object (converted to a spatial force vector for the forward dynamics pass)
-        Vector3 force = Vector3(0.0, 0.0, 0.0);
-        Vector3 torque = Vector3(0.0, 0.0, 0.0);
+        Vector3 force = Vector3::Zero();
+        Vector3 torque = Vector3::Zero();
 
         PhysicsLayer layer = PhysicsLayer::STATIC;
         PhysicsMaterial material;
@@ -160,7 +162,7 @@ class PhysicsWorld
         std::vector<PhysicsBody> bodies;
         Vector6 grav_acceleration = Vector6::Zero();
 
-        std::queue<Collision> collisions;
+        std::deque<Collision> collisions;
 
         // For all plane collision algorithms, they just assume the plane is infinite for now
         // Time permitting: take into account plane extents
@@ -179,8 +181,12 @@ class PhysicsWorld
         static CollisionQuery checkBoxOBBCollision(const PhysicsShape* const box, const Transform* const box_transform, const PhysicsShape* const obb, const Transform* const obb_transform);
         static CollisionQuery checkOBBOBBCollision(const PhysicsShape* const a, const Transform* const a_transform, const PhysicsShape* const b, const Transform* const b_transform);
 
+        const uint32_t collisionPositionIterations =1;
+        const uint32_t collisionVelocityIterations = 10;
+
         CollisionQuery checkCollision(const PhysicsBody* a, const PhysicsBody* b);
-        void handleCollision(const Collision& collision);
+        void handleCollisionVelocities(const Collision& collision);
+        void handleCollisionPositions(const Collision& collision);
 
         // Array of func pointers for collision tests
         typedef CollisionQuery (*CollisionFunc)(const PhysicsShape* const, const Transform* const, const PhysicsShape* const, const Transform* const);

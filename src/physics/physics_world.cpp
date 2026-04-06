@@ -79,10 +79,17 @@ void PhysicsWorld::setAngularVelocity(BodyID id, const Vector3& omega)
 // TODO: Make it so update runs multiple steps if delta > 1 / 60
 void PhysicsWorld::update(Real delta)
 {
-    // Check body collisions and update forces appropriately
+    // Integrate Velocities
+    for (PhysicsBody& body : bodies)
+    {
+        if (body.layer == PhysicsLayer::DYNAMIC)
+        {
+            Vector6 acceleration = calculateForwardDynamics({ .velocity = body.velocity, .spatial_inertia = body.spatial_inertia }, grav_acceleration * body.mass);
+            body.velocity += acceleration * delta;
+        }
+    }
 
     // Collision Queries
-    queryCollisions();
     for (int i = 0; i < bodies.size(); i++)
     {
         for (int j = i + 1; j < bodies.size(); j++)
@@ -92,48 +99,81 @@ void PhysicsWorld::update(Real delta)
             CollisionQuery result = checkCollision(&bodies[i], &bodies[j]);
             if (result.colliding) 
             {
-                collisions.push(Collision{ .a = i, .b = j, .norm = result.norm, .depth = result.depth, .point = result.point });
+                collisions.push_back(Collision{ .a = i, .b = j, .norm = result.norm, .depth = result.depth, .point = result.point });
             }
         }
     }
 
-    // Collision Resolution
-    while(!collisions.empty())
+    // Resolve Velocities
+    for (int i = 0; i < collisionVelocityIterations; i++)
     {
-        Collision collision = collisions.front();
-        collisions.pop();
-        handleCollision(collision);
+        for (const Collision& collision : collisions)
+        {
+            handleCollisionVelocities(collision);
+        }
     }
 
-    // Update forces and positions
+    // Integrate Positions
     for (PhysicsBody& body : bodies)
     {
-        // Only update bodies that are dynamic (i.e. respond to physics events)
-        // Static stays still
-        // Kinematic moves along a predefined curve (like an animation) and doesn't have forces knock it off course
         if (body.layer == PhysicsLayer::DYNAMIC)
         {
-            Vector6 acceleration = calculateForwardDynamics({.velocity = body.velocity, .spatial_inertia = body.spatial_inertia}, grav_acceleration * body.mass);
-
-            // Update velocity based on acceleration
-            body.velocity += acceleration * delta;
-
-            // Update position (converting linear velocity from body space to world space by using transform orientation)
             body.transform.position += body.transform.orientation * getLinearFromSpatial(body.velocity) * delta;
-
-            // Get the delta quaternion (converting angular velocity from body space to world space by using transform orientation)
+            
             Vector3 omega = body.transform.orientation * getAngularFromSpatial(body.velocity);
             Real omega_magnitude = omega.norm();
             Quaternion delta_q = Quaternion(cos(omega_magnitude * delta / 2.0), omega.normalized() * sin(omega_magnitude * delta / 2.0));
-
-            // Update orientation based on delta_q
             body.transform.orientation = delta_q * body.transform.orientation;
             body.transform.orientation.normalize();
-
-            body.force = Vector3::Zero();
-            body.torque = Vector3::Zero();
         }
     }
+
+    // Resolve Positions
+    for (int i = 0; i < collisionPositionIterations; i++)
+    {
+        for (const Collision& collision : collisions)
+        {
+            handleCollisionPositions(collision);
+        }
+    }
+    collisions.clear();
+
+    for (PhysicsBody& body : bodies)
+    {
+        body.force = Vector3::Zero();
+        body.torque = Vector3::Zero();
+    }
+
+    // FIXME: GET RID OF THIS EVENTUALLY 
+    // Update forces and positions
+    // for (PhysicsBody& body : bodies)
+    // {
+    //     // Only update bodies that are dynamic (i.e. respond to physics events)
+    //     // Static stays still
+    //     // Kinematic moves along a predefined curve (like an animation) and doesn't have forces knock it off course
+    //     if (body.layer == PhysicsLayer::DYNAMIC)
+    //     {
+    //         Vector6 acceleration = calculateForwardDynamics({.velocity = body.velocity, .spatial_inertia = body.spatial_inertia}, grav_acceleration * body.mass);
+
+    //         // Update velocity based on acceleration
+    //         body.velocity += acceleration * delta;
+
+    //         // Update position (converting linear velocity from body space to world space by using transform orientation)
+    //         body.transform.position += body.transform.orientation * getLinearFromSpatial(body.velocity) * delta;
+
+    //         // Get the delta quaternion (converting angular velocity from body space to world space by using transform orientation)
+    //         Vector3 omega = body.transform.orientation * getAngularFromSpatial(body.velocity);
+    //         Real omega_magnitude = omega.norm();
+    //         Quaternion delta_q = Quaternion(cos(omega_magnitude * delta / 2.0), omega.normalized() * sin(omega_magnitude * delta / 2.0));
+
+    //         // Update orientation based on delta_q
+    //         body.transform.orientation = delta_q * body.transform.orientation;
+    //         body.transform.orientation.normalize();
+
+    //         body.force = Vector3::Zero();
+    //         body.torque = Vector3::Zero();
+    //     }
+    // }
 }
 
 void PhysicsWorld::setGravity(const Vector6& grav)
