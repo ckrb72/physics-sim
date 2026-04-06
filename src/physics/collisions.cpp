@@ -52,29 +52,33 @@ void PhysicsWorld::handleCollisionVelocities(Collision& collision, Real delta)
     Real inverse_a_mass = (a.layer == PhysicsLayer::DYNAMIC) ? 1.0 / a.mass : 0.0;
     Real inverse_b_mass = (b.layer == PhysicsLayer::DYNAMIC) ? 1.0 / b.mass : 0.0;
 
-    Vector3 relative_a = collision.point - a.transform.position;
-    Vector3 relative_b = collision.point - b.transform.position;
+    Matrix3 inverse_a_inertia = (a.layer == PhysicsLayer::DYNAMIC) ? a.inverse_inertia : Matrix3::Zero();
+    Matrix3 inverse_b_inertia = (b.layer == PhysicsLayer::DYNAMIC) ? b.inverse_inertia : Matrix3::Zero();
 
-    Vector3 velocity_a = getLinearFromSpatial(a.velocity) + getAngularFromSpatial(a.velocity).cross(relative_a);
-    Vector3 velocity_b = getLinearFromSpatial(b.velocity) + getAngularFromSpatial(b.velocity).cross(relative_b);
+    Vector3 radius_a = collision.point - a.transform.position;
+    Vector3 radius_b = collision.point - b.transform.position;
 
-    Vector3 relative_velocity = velocity_b - velocity_a;
-    Real velocity_along_normal = collision.norm.dot(relative_velocity);
+    Vector3 a_contact_point_linear_velocity = getLinearFromSpatial(a.velocity) + getAngularFromSpatial(a.velocity).cross(radius_a);
+    Vector3 b_contact_point_linear_velocity = getLinearFromSpatial(b.velocity) + getAngularFromSpatial(b.velocity).cross(radius_b);
+
+    Vector3 relative_linear_velocity = b_contact_point_linear_velocity - a_contact_point_linear_velocity;
+    Real velocity_along_normal = collision.norm.dot(relative_linear_velocity);
 
     // The two bodies are already moving apart so no need to change the velocity
-    if (velocity_along_normal > 0.0 && collision.depth <= 0.0) return;
+    if (velocity_along_normal > 0.0) return;
 
     Real baumgarte = 0.2;
     Real slop = 0.01;
 
     Real bias = baumgarte * std::max(collision.depth - slop, 0.0) / delta;
-    Real restitution = (velocity_along_normal < -1.0f) ? std::min(a.material.restitution, b.material.restitution) : 0.0;
+    Real restitution = (velocity_along_normal < -1.0) ? std::min(a.material.restitution, b.material.restitution) : 0.0;
 
-    Real impulse = -(velocity_along_normal * bias) + (1.0f + restitution);
-    Vector3 a_intermediate = a.inverse_inertia * relative_a.cross(collision.norm);
-    Vector3 b_intermediate = b.inverse_inertia * relative_b.cross(collision.norm);
+    Real impulse = -(velocity_along_normal * (1.0 + restitution) + bias);
 
-    Real denominator = inverse_a_mass + inverse_b_mass + collision.norm.dot(a_intermediate.cross(relative_a) + b_intermediate.cross(relative_b));
+    Vector3 radius_a_cross_n = radius_a.cross(collision.norm);
+    Vector3 radius_b_cross_n = radius_b.cross(collision.norm);
+    Real denominator = inverse_a_mass + inverse_b_mass + radius_a_cross_n.dot(inverse_a_inertia * radius_a_cross_n) + radius_b_cross_n.dot(inverse_b_inertia * radius_b_cross_n);
+    
     impulse /= denominator;
 
     Real new_impulse = std::max(impulse + collision.accumulated_impulse, 0.0);
@@ -83,18 +87,16 @@ void PhysicsWorld::handleCollisionVelocities(Collision& collision, Real delta)
 
     Vector3 impulse_vec = delta_impulse * collision.norm;
 
+    // Subtract from a and add to b because norm points from a to b
     Vector3 new_linear_a = getLinearFromSpatial(a.velocity) - inverse_a_mass * impulse_vec;
-    Vector3 new_angular_a = getAngularFromSpatial(a.velocity) - a.inverse_inertia * relative_a.cross(impulse_vec);
-
+    Vector3 new_angular_a = getAngularFromSpatial(a.velocity) - inverse_a_inertia * radius_a.cross(impulse_vec);
     setLinearVelocity(collision.a, new_linear_a);
     setAngularVelocity(collision.a, new_angular_a);
 
     Vector3 new_linear_b = getLinearFromSpatial(b.velocity) + inverse_b_mass * impulse_vec;
-    Vector3 new_angular_b = getAngularFromSpatial(b.velocity) + b.inverse_inertia * relative_b.cross(impulse_vec);
-
+    Vector3 new_angular_b = getAngularFromSpatial(b.velocity) + inverse_b_inertia * radius_b.cross(impulse_vec);
     setLinearVelocity(collision.b, new_linear_b);
     setAngularVelocity(collision.b, new_angular_b);
-    
 }
 
 void PhysicsWorld::handleCollisionPositions(const Collision& collision)
@@ -122,6 +124,8 @@ void PhysicsWorld::handleCollisionPositions(const Collision& collision)
     {
         b.transform.position += norm_depth * inverse_b_mass;
     }
+
+    // TODO: Add angular components as well
 }
 
 CollisionQuery PhysicsWorld::checkSphereSphereCollision(const PhysicsShape* const a, const Transform* const at, const PhysicsShape* const b, const Transform* const bt)

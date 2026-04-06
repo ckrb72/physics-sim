@@ -41,6 +41,7 @@ int main()
     BodyID bottom_plane_body = world.createBody(PhysicsShape::MakePlane(Eigen::Vector3d(10.0, 10.0, 10.0)), Eigen::Vector3d(0.0, -3.0, 0.0), Eigen::Quaterniond(Eigen::AngleAxisd(0.0, Eigen::Vector3d(1.0, 0.0, 0.0))), 1.0, PhysicsLayer::STATIC);
     BodyID testing_stuff = world.createBody(PhysicsShape::MakePlane(Eigen::Vector3d(10.0, 10.0, 10.0)), Eigen::Vector3d(5.0, 2.0, 0.0), Eigen::Quaterniond(Eigen::AngleAxisd(DegreesToRadians(90.0), Eigen::Vector3d(0.0, 0.0, 1.0))), 1.0, PhysicsLayer::STATIC);
     BodyID left_plane = world.createBody(PhysicsShape::MakePlane(Eigen::Vector3d(10.0, 10.0, 10.0)), Eigen::Vector3d(-5.0, 2.0, 0.0), Eigen::Quaterniond(Eigen::AngleAxisd(DegreesToRadians(-90.0), Eigen::Vector3d(0.0, 0.0, 1.0))), 1.0, PhysicsLayer::STATIC);
+    BodyID second_sphere = world.createBody(PhysicsShape::MakeSphere(1.0), Vector3(-1.0, 0.0, 0.0), 100.0, PhysicsLayer::DYNAMIC);
 
     unsigned int program;
     if(!load_shader("../shader/default.vert", "../shader/default.frag", &program))
@@ -67,6 +68,7 @@ int main()
     double theta = 0.0, phi = 0.0;
 
     world.setLinearVelocity(sphere_body, Vector3(-1.0, 9.8, 0.0));
+    world.setLinearVelocity(second_sphere, Vector3(2.0, 9.8, 0.0));
     world.setGravity({ 0.0, 0.0, 0.0, 0.0, -9.8, 0.0});
 
 
@@ -122,6 +124,7 @@ int main()
             plane->draw(program, EigenMatrixToFloatArray(world.getWorldMatrix(bottom_plane_body)));
             plane->draw(program, EigenMatrixToFloatArray(world.getWorldMatrix(testing_stuff)));
             plane->draw(program, EigenMatrixToFloatArray(world.getWorldMatrix(left_plane)));
+            sphere->draw(program, EigenMatrixToFloatArray(world.getWorldMatrix(second_sphere)));
             // cube->draw(program, EigenMatrixToFloatArray(world.getWorldMatrix(cube_body)));
 
             // draw_ui(world.get_info(sphere_body));
