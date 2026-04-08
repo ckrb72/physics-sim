@@ -36,12 +36,26 @@ int main()
     std::shared_ptr<Geometry> cube = GeometryFactory::load_rect(1.0, 1.0, 1.0);
 
     PhysicsWorld world;
-    BodyID sphere_body = world.createBody(PhysicsShape::MakeSphere(1.0), PhysicsMaterial{ .restitution = 0.8f }, Vector3(1.0, 0.0, 0.0), 100.0, PhysicsLayer::DYNAMIC);
     // BodyID cube_body = world.createBody(PhysicsShape::MakeOBB(Vector3(0.5, 0.5, 0.5)), Vector3(-1.0, 0.0, 0.0), 1.0, PhysicsLayer::DYNAMIC);
-    BodyID bottom_plane_body = world.createBody(PhysicsShape::MakePlane(Eigen::Vector3d(10.0, 10.0, 10.0)), Eigen::Vector3d(0.0, -3.0, 0.0), Eigen::Quaterniond(Eigen::AngleAxisd(0.0, Eigen::Vector3d(1.0, 0.0, 0.0))), 1.0, PhysicsLayer::STATIC);
-    BodyID testing_stuff = world.createBody(PhysicsShape::MakePlane(Eigen::Vector3d(10.0, 10.0, 10.0)), Eigen::Vector3d(5.0, 2.0, 0.0), Eigen::Quaterniond(Eigen::AngleAxisd(DegreesToRadians(90.0), Eigen::Vector3d(0.0, 0.0, 1.0))), 1.0, PhysicsLayer::STATIC);
-    BodyID left_plane = world.createBody(PhysicsShape::MakePlane(Eigen::Vector3d(10.0, 10.0, 10.0)), Eigen::Vector3d(-5.0, 2.0, 0.0), Eigen::Quaterniond(Eigen::AngleAxisd(DegreesToRadians(-90.0), Eigen::Vector3d(0.0, 0.0, 1.0))), 1.0, PhysicsLayer::STATIC);
+    
+    BodyID bottom_plane_body = world.createBody(PhysicsShape::MakePlane(Vector3(10.0, 10.0, 10.0)), Vector3(0.0, -3.0, 0.0), 
+                                                Quaternion(Eigen::AngleAxisd(0.0, Vector3(1.0, 0.0, 0.0))), 1.0, PhysicsLayer::STATIC);
+    
+    BodyID testing_stuff = world.createBody(PhysicsShape::MakePlane(Vector3(10.0, 10.0, 10.0)), Vector3(5.0, 2.0, 0.0), 
+                                            Quaternion(Eigen::AngleAxisd(DegreesToRadians(90.0), Vector3(0.0, 0.0, 1.0))), 1.0, PhysicsLayer::STATIC);
+    
+    BodyID left_plane = world.createBody(PhysicsShape::MakePlane(Vector3(10.0, 10.0, 10.0)), Vector3(-5.0, 2.0, 0.0), 
+                                         Quaternion(Eigen::AngleAxisd(DegreesToRadians(-90.0), Vector3(0.0, 0.0, 1.0))), 1.0, PhysicsLayer::STATIC);
+    
+    BodyID front_plane = world.createBody(PhysicsShape::MakePlane(Vector3(10.0, 10.0, 10.0)), Vector3(0.0, 2.0, 5.0),
+                                          Quaternion(Eigen::AngleAxisd(DegreesToRadians(-90.0), Vector3(1.0, 0.0, 0.0))), 1.0, PhysicsLayer::STATIC);
+                    
+    BodyID back_plane = world.createBody(PhysicsShape::MakePlane(Vector3(10.0, 10.0, 10.0)), Vector3(0.0, 2.0, -5.0),
+                                         Quaternion(Eigen::AngleAxisd(DegreesToRadians(90.0), Vector3(1.0, 0.0, 0.0))), 1.0, PhysicsLayer::STATIC);
+    
+    BodyID sphere_body = world.createBody(PhysicsShape::MakeSphere(1.0), PhysicsMaterial{ .restitution = 0.8f }, Vector3(1.0, 0.0, 0.0), 100.0, PhysicsLayer::DYNAMIC);
     BodyID second_sphere = world.createBody(PhysicsShape::MakeSphere(1.0), Vector3(-1.0, 0.0, 0.0), 100.0, PhysicsLayer::DYNAMIC);
+    BodyID third_sphere = world.createBody(PhysicsShape::MakeSphere(1.0), Vector3(0.0, 0.0, -1.0), 10.0, PhysicsLayer::DYNAMIC);
 
     unsigned int program;
     if(!load_shader("../shader/default.vert", "../shader/default.frag", &program))
@@ -56,7 +70,7 @@ int main()
     glUseProgram(program);
     glUniformMatrix4fv(glGetUniformLocation(program, "projection"), 1, GL_FALSE, glm::value_ptr(perspective));
     glUniformMatrix4fv(glGetUniformLocation(program, "view"), 1, GL_FALSE, glm::value_ptr(view));
-    glUniform3fv(glGetUniformLocation(program, "object_color"), 1, glm::value_ptr(glm::vec3(1.0, 1.0, 1.0)));
+    glUniform3fv(glGetUniformLocation(program, "object_color"), 1, glm::value_ptr(glm::vec3(0.5, 0.5, 0.5)));
 
     EngineTime time;
     time.init();
@@ -69,6 +83,7 @@ int main()
 
     world.setLinearVelocity(sphere_body, Vector3(-1.0, 9.8, 0.0));
     world.setLinearVelocity(second_sphere, Vector3(2.0, 9.8, 0.0));
+    world.setLinearVelocity(third_sphere, Vector3(0.0, 0.0, 1.0));
     world.setGravity({ 0.0, 0.0, 0.0, 0.0, -9.8, 0.0});
 
 
@@ -124,7 +139,10 @@ int main()
             plane->draw(program, EigenMatrixToFloatArray(world.getWorldMatrix(bottom_plane_body)));
             plane->draw(program, EigenMatrixToFloatArray(world.getWorldMatrix(testing_stuff)));
             plane->draw(program, EigenMatrixToFloatArray(world.getWorldMatrix(left_plane)));
+            plane->draw(program, EigenMatrixToFloatArray(world.getWorldMatrix(front_plane)));
+            plane->draw(program, EigenMatrixToFloatArray(world.getWorldMatrix(back_plane)));
             sphere->draw(program, EigenMatrixToFloatArray(world.getWorldMatrix(second_sphere)));
+            sphere->draw(program, EigenMatrixToFloatArray(world.getWorldMatrix(third_sphere)));
             // cube->draw(program, EigenMatrixToFloatArray(world.getWorldMatrix(cube_body)));
 
             // draw_ui(world.get_info(sphere_body));

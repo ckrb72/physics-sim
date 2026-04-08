@@ -36,7 +36,7 @@ GLFWwindow* init_window(uint32_t width, uint32_t height, const char* title)
     }
 
     glEnable(GL_DEPTH_TEST);
-    glClearColor(0.3, 0.3, 0.3, 1.0);
+    glClearColor(0.2, 0.2, 0.2, 1.0);
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
