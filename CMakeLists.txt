@@ -24,6 +24,10 @@ add_executable(bouncing_sphere "${SOURCE_DIR}/apps/bouncing_sphere.cpp" ${SRC_RE
 target_include_directories(bouncing_sphere PUBLIC "${VENDOR_DIR}/glad/include" "${VENDOR_DIR}/glm" "${SOURCE_DIR}")
 target_link_libraries(bouncing_sphere ${OPENGL_LIBRARIES} glfw imgui physics_lib)
 
+add_executable(bouncing_cube "${SOURCE_DIR}/apps/bouncing_cube.cpp" ${SRC_RENDER_FILES} ${SRC_RENDER_C_FILES})
+target_include_directories(bouncing_cube PUBLIC "${VENDOR_DIR}/glad/include" "${VENDOR_DIR}/glm" "${SOURCE_DIR}")
+target_link_libraries(bouncing_cube ${OPENGL_LIBRARIES} glfw imgui physics_lib)
+
 add_executable(spline "${SOURCE_DIR}/apps/spline.cpp" ${SRC_RENDER_FILES} ${SRC_RENDER_C_FILES})
 target_include_directories(spline PUBLIC "${VENDOR_DIR}/glad/include" "${VENDOR_DIR}/glm" "${SOURCE_DIR}")
 target_link_libraries(spline ${OPENGL_LIBRARIES} glfw imgui physics_lib)

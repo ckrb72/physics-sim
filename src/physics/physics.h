@@ -14,6 +14,7 @@
     using Matrix4 = Eigen::Matrix4d;
     using Matrix3 = Eigen::Matrix3d;
     using Affine3 = Eigen::Affine3d;
+    using Vector2 = Eigen::Vector2d;
 #else
     using Real = float;
     using Vector3 = Eigen::Vector3f;
@@ -21,6 +22,7 @@
     using Matrix4 = Eigen::Matrix4f;
     using Matrix3 = Eigen::Matrix3f;
     using Affine3 = Eigen::Affine3f;
+    using Vector2 = Eigen::Vector2f;
 #endif
 
 using Vector6 = Eigen::Matrix<Real, 6, 1>;
@@ -72,7 +74,7 @@ struct SphereShape
 
 struct PlaneShape
 {
-    Vector3 extent;
+    Vector2 extent;
 };
 
 struct OBBShape
@@ -92,7 +94,7 @@ struct PhysicsShape
     };
 
     static PhysicsShape MakeSphere(Real radius);
-    static PhysicsShape MakePlane(const Vector3& extent);
+    static PhysicsShape MakePlane(const Vector2& extent);
     static PhysicsShape MakeOBB(const Vector3& half_extent);
 };
 
@@ -155,7 +157,6 @@ struct Collision
     Real depth = 0.0;
     Vector3 point = Vector3::Zero();
     Real accumulated_impulse = 0.0;
-    bool restitution_applied = false;
 };
 
 class PhysicsWorld

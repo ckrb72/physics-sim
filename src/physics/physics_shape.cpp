@@ -111,7 +111,7 @@ PhysicsShape PhysicsShape::MakeSphere(Real radius)
     };
 }
 
-PhysicsShape PhysicsShape::MakePlane(const Vector3& extent)
+PhysicsShape PhysicsShape::MakePlane(const Vector2& extent)
 {
     return PhysicsShape{
         .type = ShapeType::PLANE,
